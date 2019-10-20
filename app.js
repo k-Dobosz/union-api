@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const indexRouter = require('./api/routes/index');
 const deviceRouter = require('./api/routes/device');
 const userRouter = require('./api/routes/user');
-const drugRouter = require('./api/routes/drug');
+const medicineRouter = require('./api/routes/medicine');
 const prescriptionRouter = require('./api/routes/prescription');
 
 app.use(logger('dev'));
@@ -26,7 +26,7 @@ app.use((req, res, next) => {
 app.use('/api', indexRouter);
 app.use('/api/device', deviceRouter);
 app.use('/api/user', userRouter);
-app.use('/api/drug', drugRouter);
+app.use('/api/medicine', medicineRouter);
 app.use('/api/prescription', prescriptionRouter);
 
 app.use((req, res, next) => {

@@ -12,9 +12,9 @@ const jwt = require('jsonwebtoken');
  * @apiSuccess {Number} prescription.id Prescription ID
  * @apiSuccess {Number} prescription.doctorId Doctor ID
  * @apiSuccess {Number} prescription.patientId Patient ID
- * @apiSuccess {Number} prescription.drugId Drug ID
+ * @apiSuccess {Number} prescription.medicineId Medicine ID
  * @apiSuccess {String} prescription.description Prescription description
- * @apiSuccess {String} prescription.drugTakingFrequency Drug taking frequency
+ * @apiSuccess {String} prescription.medicineTakingFrequency Medicine taking frequency
  * @apiSuccessExample {json} Success
  * HTTP/1.1 200 OK
  * {
@@ -23,17 +23,17 @@ const jwt = require('jsonwebtoken');
  *             "id": 1,
  *             "doctorId": 1,
  *             "patientId": 2,
- *             "drugId": 1,
+ *             "medicineId": 1,
  *             "description": "Example description",
- *             "drugTakingFrequency": "6h"
+ *             "medicineTakingFrequency": "6h"
  *         },
  *         {
  *             "id": 2,
  *             "doctorId": 2,
  *             "patientId": 3,
- *             "drugId": 2,
+ *             "medicineId": 2,
  *             "description": "Example description 2",
- *             "drugTakingFrequency": "12h"
+ *             "medicineTakingFrequency": "12h"
  *         },
  *     ]
  * }
@@ -64,9 +64,9 @@ router.get('/', (req, res, next) => {
  * @apiSuccess {Number} prescription.id Prescription ID
  * @apiSuccess {Number} prescription.doctorId Doctor ID
  * @apiSuccess {Number} prescription.patientId Patient ID
- * @apiSuccess {Number} prescription.drugId Drug ID
+ * @apiSuccess {Number} prescription.medicineId Medicine ID
  * @apiSuccess {String} prescription.description Prescription description
- * @apiSuccess {String} prescription.drugTakingFrequency Drug taking frequency
+ * @apiSuccess {String} prescription.medicineTakingFrequency Medicine taking frequency
  * @apiSuccessExample {json} Success
  * HTTP/1.1 200 OK
  * {
@@ -75,9 +75,9 @@ router.get('/', (req, res, next) => {
  *             "id": 1,
  *             "doctorId": 1,
  *             "patientId": 2,
- *             "drugId": 1,
+ *             "medicineId": 1,
  *             "description": "Example description",
- *             "drugTakingFrequency": "6h"
+ *             "medicineTakingFrequency": "6h"
  *         },
  *     ]
  * }
@@ -112,9 +112,9 @@ router.get('/:prescriptionId', (req, res, next) => {
  *
  * @apiParam {Number} doctorId Doctor ID
  * @apiParam {Number} patientId Patient ID
- * @apiParam {Number} drugId Drug ID
+ * @apiParam {Number} medicineId Medicine ID
  * @apiParam {String} description Description
- * @apiParam {String} drugTakingFrequency Drug taking frequency
+ * @apiParam {String} medicineTakingFrequency Medicine taking frequency
  *
  * @apiSuccessExample {json} Success
  * HTTP/1.1 201 OK
@@ -126,11 +126,11 @@ router.get('/:prescriptionId', (req, res, next) => {
 router.post('/add', (req, res, next) => {
     const doctorId = req.body.doctorId;
     const patientId = req.body.patientId;
-    const drugId = req.body.drugId;
+    const medicineId = req.body.medicineId;
     const description = req.body.description;
-    const drugTakingFreq = req.body.drugTakingFrequency;
+    const medicineTakingFrequency = req.body.medicineTakingFrequency;
 
-    db.query(`INSERT INTO prescriptions VALUES(NULL, '${doctorId}', '${patientId}', '${drugId}', '${description}', '${drugTakingFreq}')`, (err, data) => {
+    db.query(`INSERT INTO prescriptions VALUES(NULL, '${doctorId}', '${patientId}', '${medicineId}', '${description}', '${medicineTakingFrequency}')`, (err, data) => {
         if (!err) {
             res.status(201).json({
                 'message': 'Prescription created successfully'
