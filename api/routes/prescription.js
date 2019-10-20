@@ -77,7 +77,7 @@ router.get('/', (req, res, next) => {
  *             "patientId": 2,
  *             "medicineId": 1,
  *             "description": "Example description",
- *             "medicineTakingFrequency": "6h"
+ *             "medicine_taking_frequency": "6h"
  *         },
  *     ]
  * }
@@ -93,8 +93,14 @@ router.get('/:prescriptionId', (req, res, next) => {
                     'message': 'Prescription with provided id not found'
                 });
             } else {
+                data = data[0];
                 res.status(200).json({
-                    'data': data
+                    'id': data.id,
+                    'doctorId': data.doctorId,
+                    'patientId': data.patientId,
+                    'medicineId': data.medicineId,
+                    'description': data.description,
+                    'medicine_taking_frequency': data.medicine_taking_frequency
                 });
             }
         } else {
@@ -102,6 +108,58 @@ router.get('/:prescriptionId', (req, res, next) => {
                 'error': err
             });
         }
+    });
+});
+
+/**
+ * @api {get} /api/patient/:patientId Get info about prescription
+ * @apiName GetPrescriptionByPatientId
+ * @apiGroup Prescription
+ *
+ * @apiParam {Number} patientId Patient ID
+ *
+ * @apiSuccess {Object[]} data Prescription's list
+ * @apiSuccess {Number} prescription.id Prescription ID
+ * @apiSuccess {Number} prescription.doctorId Doctor ID
+ * @apiSuccess {Number} prescription.patientId Patient ID
+ * @apiSuccess {Number} prescription.medicineId Medicine ID
+ * @apiSuccess {String} prescription.description Prescription description
+ * @apiSuccess {String} prescription.medicineTakingFrequency Medicine taking frequency
+ * @apiSuccessExample {json} Success
+ * HTTP/1.1 200 OK
+ * {
+ *     "data": [
+ *         {
+ *             "id": 1,
+ *             "doctorId": 1,
+ *             "patientId": 2,
+ *             "medicineId": 1,
+ *             "description": "Example description",
+ *             "medicine_taking_frequency": "6h"
+ *         },
+ *     ]
+ * }
+ */
+
+router.get('/patient/:patientId', (req, res, next) => {
+    const patientId = req.params.patientId;
+
+    db.query(`SELECT * FROM prescriptions WHERE patientId='${patientId}'`, (err, data) => {
+       if (!err) {
+           if (data.length > 0) {
+               res.status(200).json({
+                   'data': data
+               });
+           } else {
+               res.status(404).json({
+                   'message': 'No prescriptions found for provided patientId'
+               });
+           }
+       } else {
+           res.status(500).json({
+               'error': err
+           })
+       }
     });
 });
 
