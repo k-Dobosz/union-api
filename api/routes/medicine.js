@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const auth = require('../auth')
 const jwt = require('jsonwebtoken');
 
 /**
@@ -12,7 +13,7 @@ const jwt = require('jsonwebtoken');
  * @apiSuccess {Number} medicine.id Medicine id
  * @apiSuccess {String} medicine.name Medicine name
  * @apiSuccess {String} medicine.description Medicine description
- * @apiSuccess {String} medicine.takingFrequency Medicine taking frequency
+ * @apiSuccess {String} medicine.taking_frequency Medicine taking frequency
  * @apiSuccessExample {json} Success
  * HTTP/1.1 200 OK
  * {
@@ -21,19 +22,19 @@ const jwt = require('jsonwebtoken');
  *             "id": 1,
  *             "name": "Example",
  *             "description": "Example description",
- *             "takingFrequency": "6h"
+ *             "taking_frequency": "6h"
  *         },
  *         {
  *             "id": 2,
  *             "name": "Example 2",
  *             "description": "Example description 2",
- *             "takingFrequency": "12h"
+ *             "taking_frequency": "12h"
  *         }
  *     ]
  * }
  */
 
-router.get('/', (req, res, next) => {
+router.get('/', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     db.query(`SELECT * FROM medicines`, (err, data) => {
         if (!err) {
             res.status(200).json({
@@ -58,7 +59,7 @@ router.get('/', (req, res, next) => {
  * @apiSuccess {Number} medicine.id Medicine id
  * @apiSuccess {String} medicine.name Medicine name
  * @apiSuccess {String} medicine.description Medicine description
- * @apiSuccess {String} medicine.takingFrequency Medicine taking frequency
+ * @apiSuccess {String} medicine.taking_frequency Medicine taking frequency
  * @apiSuccessExample {json} Success
  * HTTP/1.1 200 OK
  * {
@@ -67,32 +68,49 @@ router.get('/', (req, res, next) => {
  *             "id": 1,
  *             "name": "Example",
  *             "description": "Example description",
- *             "takingFrequency": "6h"
+ *             "taking_frequency": "6h"
  *         }
  *     ]
  * }
  */
 
-router.get('/:medicineId', (req, res, next) => {
+router.get('/:medicineId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const medicineId = req.params.medicineId;
 
-    db.query(`SELECT * FROM medicines WHERE id='${medicineId}'`, (err, data) => {
-        if (!err) {
-            if (data.length < 1) {
-                res.status(404).json({
-                    'message': 'Medicine with provided id not found'
-                });
+    if (medicineId !== undefined) {
+        db.query(`SELECT * FROM medicines WHERE id='${medicineId}'`, (err, data) => {
+            if (!err) {
+                switch (data.length) {
+                    case 1:
+                        res.status(200).json({
+                            'id': data[0].id,
+                            'name': data[0].name,
+                            'description': data[0].description,
+                            'taking_frequency': data[0].taking_frequency
+                        });
+                        break;
+                    case 0:
+                        res.status(404).json({
+                            'message': 'Medicine with provided id not found'
+                        });
+                        break;
+                    default:
+                        res.status(500).json({
+                            'message': 'Database error'
+                        });
+                        break;
+                }
             } else {
-                res.status(200).json({
-                    'data': data
+                res.status(500).json({
+                    'error': err
                 });
             }
-        } else {
-            res.status(500).json({
-                'error': err
-            });
-        }
-    });
+        });
+    } else {
+        res.status(400).json({
+            'message': 'Not enough data provided'
+        });
+    }
 });
 
 /**
@@ -102,7 +120,7 @@ router.get('/:medicineId', (req, res, next) => {
  *
  * @apiParam {String} name Medicine name
  * @apiParam {String} description Medicine description
- * @apiParam {String} takingFrequency Medicine taking frequency
+ * @apiParam {String} taking_frequency Medicine taking frequency
  *
  * @apiSuccessExample {json} Success
  * HTTP/1.1 201 OK
@@ -113,37 +131,51 @@ router.get('/:medicineId', (req, res, next) => {
  */
 
 
-router.post('/add', (req, res, next) => {
+router.post('/add', auth({ roles: [4] }), (req, res, next) => {
     const name = req.body.name;
     const description = req.body.description;
-    const takingFrequency = req.body.takingFrequency;
+    const taking_frequency = req.body.taking_frequency;
 
-    db.query(`SELECT * FROM medicines WHERE name='${name}'`, (err, data) => {
-        if (!err) {
-            if (data.length >= 1) {
-                res.status(500).json({
-                    'message': 'Medicine with provided name already exists'
-                });
-            } else {
-                db.query(`INSERT INTO medicines VALUES(NULL, '${name}', '${description}', '${takingFrequency}')`, (err, data) => {
-                    if (!err) {
-                        res.status(201).json({
-                            'message': 'Medicine successfully added',
-                            'data': data
-                        });
-                    } else {
+    if (name !== undefined && description !== undefined && taking_frequency !== undefined) {
+        db.query(`SELECT * FROM medicines WHERE name='${name}'`, (err, data) => {
+            if (!err) {
+                switch (data.length) {
+                    case 1:
                         res.status(500).json({
-                            'error': err
+                            'message': 'Medicine with provided name already exists'
                         });
-                    }
+                        break;
+                    case 0:
+                        db.query(`INSERT INTO medicines VALUES(NULL, '${name}', '${description}', '${takingFrequency}')`, (err, data) => {
+                            if (!err) {
+                                res.status(201).json({
+                                    'message': 'Medicine successfully added',
+                                    'data': data
+                                });
+                            } else {
+                                res.status(500).json({
+                                    'error': err
+                                });
+                            }
+                        });
+                        break;
+                    default:
+                        res.status(500).json({
+                            'message': 'Database error'
+                        });
+                        break;
+                }
+            } else {
+                res.status(500).json({
+                    'error': err
                 });
             }
-        } else {
-            res.status(500).json({
-                'error': err
-            });
-        }
-    });
+        });
+    } else {
+        res.status(400).json({
+            'message': 'Not enough data provided'
+        });
+    }
 });
 
 /**
@@ -160,25 +192,40 @@ router.post('/add', (req, res, next) => {
  * }
  */
 
-router.delete('/:medicineId', (req, res, next) => {
+router.delete('/:medicineId', auth({ roles: [4] }), (req, res, next) => {
     const medicineId = req.params.medicineId;
-    db.query(`DELETE FROM medicines WHERE id='${medicineId}'`, (err, data) => {
-        if (!err) {
-            if (data.length < 1) {
-                res.status(404).json({
-                    'message': 'Medicine not found'
-                });
+
+    if (medicineId !== undefined) {
+        db.query(`DELETE FROM medicines WHERE id='${medicineId}'`, (err, data) => {
+            if (!err) {
+                switch (data.length) {
+                    case 1:
+                        res.status(200).json({
+                            'message': 'Medicine successfully deleted'
+                        });
+                        break;
+                    case 0:
+                        res.status(404).json({
+                            'message': 'Medicine not found'
+                        });
+                        break;
+                    default:
+                        res.status(500).json({
+                            'message': 'Database error'
+                        });
+                        break;
+                }
             } else {
-                res.status(200).json({
-                    'message': 'Medicine successfully deleted'
+                res.status(500).json({
+                    'error': err
                 });
             }
-        } else {
-            res.status(500).json({
-                'error': err
-            });
-        }
-    });
+        });
+    } else {
+        res.status(400).json({
+            'message': 'Not enough data provided'
+        });
+    }
 });
 
 module.exports = router;
