@@ -19,21 +19,27 @@ const logger = require('../logger');
  * {
  *     "id": 1,
  *     "email": "example@example.com",
- *     "pesel": 12345678901
+ *     "pesel": 12345678901,
+ *     "role": 2,
+ *     "institutionId": 1,
  *     "first_name": "Adam",
- *     "second_name": "",
- *     "last_name": "",
- *     "mother_name": "",
- *     "father_name": "",
+ *     "second_name": "Jan",
+ *     "last_name": "Nowak",
+ *     "mother_name": "Aneta",
+ *     "father_name": "Rafał",
  *     "gender": "male",
  *     "height": 180,
  *     "date_of_birth": "1999-01-01",
- *     "place_of_birth": "",
- *     "address": ""
+ *     "place_of_birth": "Katowice",
+ *     "address_street": "Jagiellońska"
+ *     "address_house_number": "13"
+ *     "address_postcode": "41-200"
+ *     "address_city": "Sosnowiec"
+ *     "address_country": "Polska"
  * }
  */
 
-router.get('/:userId', auth({ roles: [3, 4] }), (req, res, next) => {
+router.get('/:userId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const userId = req.params.userId;
 
     if (userId !== undefined) {
@@ -46,6 +52,7 @@ router.get('/:userId', auth({ roles: [3, 4] }), (req, res, next) => {
                             'id': data[0].id,
                             'email': data[0].email,
                             'pesel': data[0].pesel,
+                            'role': data[0].role,
                             'institutionId': data[0].institutionId,
                             'first_name': data[0].first_name,
                             'second_name': data[0].second_name,
@@ -56,13 +63,16 @@ router.get('/:userId', auth({ roles: [3, 4] }), (req, res, next) => {
                             'height': data[0].height,
                             'date_of_birth': data[0].date_of_birth,
                             'place_of_birth': data[0].place_of_birth,
-                            'address': data[0].address
+                            'address_street': data[0].address_street,
+                            'address_house_number': data[0].address_house_number,
+                            'address_postcode': data[0].address_postcode,
+                            'address_city': data[0].address_city,
+                            'address_country': data[0].address_country,
                         });
                         break;
                     case 0:
                         logger('user', `Error 404 - GetUser (id: ${userId})`);
                         res.status(404).json({
-                            'error_code': 404,
                             'message': 'User with provided id not found'
                         });
                         break;
@@ -119,7 +129,11 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
    const height = req.body.height;
    const date_of_birth = req.body.date_of_birth;
    const place_of_birth = req.body.place_of_birth;
-   const address = req.body.address;
+   const address_street = req.body.address_street;
+   const address_house_number = req.body.address_house_number;
+   const address_postcode = req.body.address_postcode;
+   const address_city = req.body.address_city;
+   const address_country = req.body.address_country;
 
    if (email !== undefined &&
        password !== undefined &&
@@ -133,7 +147,11 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
        height !== undefined &&
        date_of_birth !== undefined &&
        place_of_birth !== undefined &&
-       address !== undefined
+       address_street !== undefined &&
+       address_house_number !== undefined &&
+       address_postcode !== undefined &&
+       address_city !== undefined &&
+       address_country !== undefined
    ) {
        db.query(`SELECT * FROM users WHERE pesel='${pesel}'`, (err, data) => {
            if (!err) {
@@ -154,7 +172,7 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
                                bcrypt.hash(password, 10, (err, hash) => {
                                    if (!err) {
                                        db.query(
-                                           `INSERT INTO users VALUES(NULL, '${email}', '${hash}', '${pesel}', '${role}', '${first_name}', '${second_name}', '${last_name}', '${mother_name}', '${father_name}', '${gender}', '${height}','${date_of_birth}','${place_of_birth}','${address}')`, (err, data) => {
+                                           `INSERT INTO users VALUES(NULL, '${email}', '${hash}', '${pesel}', '${role}', '${first_name}', '${second_name}', '${last_name}', '${mother_name}', '${father_name}', '${gender}', '${height}','${date_of_birth}','${place_of_birth}','${address_street}''${address_house_number}''${address_postcode}''${address_city}''${address_country}')`, (err, data) => {
                                                if (!err) {
                                                    logger('user', `RegisterUser (email: ${email})`);
                                                    res.status(201).json({
@@ -462,7 +480,7 @@ router.post('/refresh_token', (req, res, next) => {
  * }
  */
 
-router.post('/visits_today', auth({ roles: [3, 4] }), (req, res, next) => {
+router.post('/visits_today', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const doctorId = req.body.doctorId;
 
     if (doctorId !== undefined) {
@@ -587,6 +605,89 @@ router.get('/:userId/get_devices', auth({ roles: [2, 3, 4]}), (req, res, next) =
             'message': 'Not enough data provided'
         });
     }
+});
+
+/**
+ * @api {post} /api/user/change_password Change user's password
+ * @apiName ChangeUserPassword
+ * @apiGroup User
+ *
+ * @apiParam {Number} userId User ID
+ * @apiParam {String} old_password Old password
+ * @apiParam {String} new_password New password
+ *
+ * @apiSuccessExample {json} Success
+ * HTTP/1.1 200 OK
+ * {
+ *     "data": [
+ *         {
+ *             "id": 1,
+ *             "userId": 1,
+ *             "deviceId": 1
+ *         }
+ *     ]
+ * }
+ */
+
+router.post('/change_password', (req, res, next) => {
+   const userId = req.body.userId;
+   const old_password = req.body.old_password;
+   const new_password = req.body.new_password;
+
+   if (userId !== undefined && old_password !== undefined && new_password !== undefined) {
+       db.query(`SELECT * FROM users WHERE id='${userId}'`, (err, data) => {
+          if (!err) {
+              if (data.length === 0) {
+                  logger('user', `Error 401 - LoginUser (email: ${email})`);
+                  return res.status(400).json({
+                      'message': 'Auth failed'
+                  });
+              } else {
+                  bcrypt.compare(old_password, data[0].password, (err, result) => {
+                      if (!err) {
+                          if (result) {
+                              bcrypt.hash(new_password, 10, (err, hash) => {
+                                  db.query(`UPDATE users SET password='${hash}' WHERE id='${userId}'`, (err, updateData) => {
+                                      if (!err) {
+                                          logger('user', `LoginUser (userId: ${userId})`);
+                                          return res.status(200).json({
+                                              'message': 'Password has been changed',
+                                          });
+                                      } else {
+                                          logger('user', `Error 500 - LoginUser (userId: ${userId})`);
+                                          res.status(500).json({
+                                              'error': err
+                                          })
+                                      }
+                                  });
+                              });
+                          } else {
+                              logger('user', `Error 401 - ChangeUserPassword (userId: ${userId})`);
+                              return res.status(400).json({
+                                  'message': 'Auth failed'
+                              });
+                          }
+                      } else {
+                          logger('user', `Error 500 - ChangeUserPassword (userId: ${userId})`);
+                          res.status(500).json({
+                              'error': err
+                          });
+                      }
+                  });
+              }
+          } else {
+              logger('user', `Error 500 - ChangeUserPassword (userId: ${userId})`);
+              res.status(500).json({
+                  'error': err
+              });
+          }
+       });
+   } else {
+       logger('user', `Error 400 - ChangeUserPassword`);
+       res.status(400).json({
+           'message': 'Not enough data provided'
+       });
+   }
 });
 
 module.exports = router;

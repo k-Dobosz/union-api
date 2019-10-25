@@ -19,10 +19,22 @@ const logger = require('../logger');
  *         {
  *             "id": 1,
  *             "name": "Example",
+ *             "phone_number": 123456789,
+ *             "address_street": "Jagiellońska"
+ *             "address_house_number": "13"
+ *             "address_postcode": "41-200"
+ *             "address_city": "Sosnowiec"
+ *             "address_country": "Polska"
  *         },
  *         {
  *             "id": 2,
  *             "name": "Example 2",
+ *             "phone_number": 987654321
+ *             "address_street": "Jagiellońska"
+ *             "address_house_number": "14"
+ *             "address_postcode": "41-200"
+ *             "address_city": "Sosnowiec"
+ *             "address_country": "Polska"
  *         }
  *     ]
  * }
@@ -59,6 +71,11 @@ router.get('/', auth({ roles: [2, 3, 4] }), (req, res, next) => {
  * {
  *     "id": 123,
  *     "name": "Example institution"
+ *     "address_street": "Jagiellońska"
+ *     "address_house_number": "13"
+ *     "address_postcode": "41-200"
+ *     "address_city": "Sosnowiec"
+ *     "address_country": "Polska"
  * }
  */
 
@@ -74,6 +91,12 @@ router.get('/:institutionId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                         res.status(200).json({
                             'id': data[0].id,
                             'name': data[0].name,
+                            'phone_number': data[0].phone_number,
+                            'address_street': data[0].address_street,
+                            'address_house_number': data[0].address_house_number,
+                            'address_postcode': data[0].address_postcode,
+                            'address_city': data[0].address_city,
+                            'address_country': data[0].address_country
                         });
                         break;
                     case 0:
@@ -122,8 +145,22 @@ router.get('/:institutionId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
 
 router.post('/add', auth({ roles: [4] }), (req, res, next) => {
     const name = req.body.name;
+    const phone_number = req.body.phone_number;
+    const address_street = req.body.address_street;
+    const address_house_number = req.body.address_house_number;
+    const address_postcode = req.body.address_postcode;
+    const address_city = req.body.address_city;
+    const address_country = req.body.address_country;
 
-    if (name !== undefined) {
+    if (
+        name !== undefined &&
+        phone_number !== undefined &&
+        address_street !== undefined &&
+        address_house_number !== undefined &&
+        address_postcode !== undefined &&
+        address_city !== undefined &&
+        address_country !== undefined
+    ) {
         db.query(`SELECT * FROM institutions WHERE name='${name}'`, (err, data) => {
             if (!err) {
                 switch (data.length) {
@@ -134,7 +171,7 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
                         });
                         break;
                     case 0:
-                        db.query(`INSERT INTO institutions VALUES(NULL, '${name}')`, (err, data) => {
+                        db.query(`INSERT INTO institutions VALUES(NULL, '${name}', '${phone_number}', '${address_street}', '${address_house_number}', '${address_postcode}', '${address_city}', '${address_country}')`, (err, data) => {
                             if (!err) {
                                 logger('institution', `AddInstitution (name: ${name})`);
                                 res.status(201).json({

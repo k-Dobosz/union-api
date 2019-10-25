@@ -13,8 +13,8 @@ const logger = require('../logger');
  * @apiSuccess {Number} prescription.id Prescription ID
  * @apiSuccess {Number} prescription.doctorId Doctor ID
  * @apiSuccess {Number} prescription.patientId Patient ID
- * @apiSuccess {String} prescription.description Prescription description
- * @apiSuccess {String} prescription.medicineTakingFrequency Medicine taking frequency
+ * @apiSuccess {Number} prescription.institutionId Institution ID
+ * @apiSuccess {Date} prescription.date Date
  * @apiSuccessExample {json} Success
  * HTTP/1.1 200 OK
  * {
@@ -23,15 +23,15 @@ const logger = require('../logger');
  *             "id": 1,
  *             "doctorId": 1,
  *             "patientId": 2,
- *             "description": "Example description",
- *             "medicineTakingFrequency": "6h"
+ *             "institutionId": 1,
+ *             "date": "2019-10-21T22:00:00.000Z"
  *         },
  *         {
  *             "id": 2,
  *             "doctorId": 2,
  *             "patientId": 3,
- *             "description": "Example description 2",
- *             "medicineTakingFrequency": "12h"
+ *             "institutionId": 1,
+ *             "date": "2019-10-21T22:00:00.000Z"
  *         },
  *     ]
  * }
@@ -64,8 +64,8 @@ router.get('/', (req, res, next) => {
  * @apiSuccess {Number} prescription.id Prescription ID
  * @apiSuccess {Number} prescription.doctorId Doctor ID
  * @apiSuccess {Number} prescription.patientId Patient ID
- * @apiSuccess {String} prescription.description Prescription description
- * @apiSuccess {String} prescription.medicineTakingFrequency Medicine taking frequency
+ * @apiSuccess {Number} prescription.institutionId Institution ID
+ * @apiSuccess {Date} prescription.date Date
  * @apiSuccessExample {json} Success
  * HTTP/1.1 200 OK
  * {
@@ -74,9 +74,8 @@ router.get('/', (req, res, next) => {
  *             "id": 1,
  *             "doctorId": 1,
  *             "patientId": 2,
- *             "medicineId": 1,
- *             "description": "Example description",
- *             "medicine_taking_frequency": "6h"
+ *             "institutionId": 1,
+ *             "date": "2019-10-22T22:00:00.000Z"
  *         },
  *     ]
  * }
@@ -96,8 +95,8 @@ router.get('/:prescriptionId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                             'id': data.id,
                             'doctorId': data.doctorId,
                             'patientId': data.patientId,
-                            'description': data.description,
-                            'medicine_taking_frequency': data.medicine_taking_frequency
+                            'institutionId': data.institutionId,
+                            'date': data.date
                         });
                         break;
                     case 0:
@@ -139,8 +138,8 @@ router.get('/:prescriptionId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
  * @apiSuccess {Number} prescription.id Prescription ID
  * @apiSuccess {Number} prescription.doctorId Doctor ID
  * @apiSuccess {Number} prescription.patientId Patient ID
- * @apiSuccess {String} prescription.description Prescription description
- * @apiSuccess {String} prescription.medicineTakingFrequency Medicine taking frequency
+ * @apiSuccess {Number} prescription.institutionId Institution ID
+ * @apiSuccess {Date} prescription.date Date
  * @apiSuccessExample {json} Success
  * HTTP/1.1 200 OK
  * {
@@ -149,8 +148,8 @@ router.get('/:prescriptionId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
  *             "id": 1,
  *             "doctorId": 1,
  *             "patientId": 2,
- *             "description": "Example description",
- *             "medicine_taking_frequency": "6h"
+ *             "institutionId": 1,
+ *             "date": "2019-10-22T22:00:00.000Z"
  *         },
  *     ]
  * }
@@ -195,32 +194,31 @@ router.get('/patient/:patientId', auth({ roles: [2, 3, 4] }), (req, res, next) =
  *
  * @apiParam {Number} doctorId Doctor ID
  * @apiParam {Number} patientId Patient ID
- * @apiParam {String} description Description
- * @apiParam {String} medicine_taking_frequency Medicine taking frequency
+ * @apiParam {Number} institutionId Institution ID
  *
  * @apiSuccessExample {json} Success
  * HTTP/1.1 201 OK
  * {
- *     "message": "Prescription created successfully"
+ *     "message": "Prescription created successfully",
+ *     "insertId": 1
  * }
  */
 
 router.post('/add', auth({ roles: [3, 4] }), (req, res, next) => {
     const doctorId = req.body.doctorId;
     const patientId = req.body.patientId;
-    const description = req.body.description;
-    const medicine_taking_frequency = req.body.medicine_taking_frequency;
+    const institutionId = req.body.institutionId
 
     if (doctorId !== undefined &&
         patientId !== undefined &&
-        description !== undefined &&
-        medicine_taking_frequency !== undefined
+        institutionId !== undefined
     ) {
-        db.query(`INSERT INTO prescriptions VALUES(NULL, '${doctorId}', '${patientId}', '${description}', '${medicine_taking_frequency}')`, (err, data) => {
+        db.query(`INSERT INTO prescriptions VALUES(NULL, '${doctorId}', '${patientId}', '${institutionId}', CURRENT_DATE)`, (err, data) => {
             if (!err) {
                 logger('prescription', `GetPrescriptionByPatientId (patientId: ${patientId})`);
                 res.status(201).json({
-                    'message': 'Prescription created successfully'
+                    'message': 'Prescription created successfully',
+                    'insertId': data[0].insertId
                 });
             } else {
                 logger('prescription', `Error 500 - GetPrescriptionByPatientId (patientId: ${patientId})`);
@@ -325,6 +323,14 @@ router.delete('/:prescriptionId', auth({ roles: [4] }), (req, res, next) => {
  * }
  */
 
+// router.post('/medicines/add', auth({ roles: [2, 3, 4]}), (req, res, next) => {
+//     const prescriptionId = req.body.prescriptionId;
+//     const medicineId = req.body.medicineId;
+//
+//     if (prescriptionId !== undefined && medicineId !== undefined) {
+//     }
+// });
+
 router.get('/:prescriptionId/medicines', auth({ roles: [2, 3, 4]}), (req, res, next) => {
     const prescriptionId = req.params.prescriptionId;
 
@@ -334,10 +340,11 @@ router.get('/:prescriptionId/medicines', auth({ roles: [2, 3, 4]}), (req, res, n
                 if (data.length >= 1) {
                     let medicines = [];
                     for(let i = 0; i < data.length; i++) {
-                        db.query(`SELECT * FROM medicines WHERE id='${data[i].medicineId}'`, (err, data) => {
+                        db.query(`SELECT * FROM medicines WHERE id='${data[i].medicineId}'`, (err, medicineData) => {
                            if (!err) {
-                               medicines.push(data);
-                               if (i === data.length) {
+                               medicineData[0].taking_frequency = data[i].taking_frequency;
+                               medicines.push(medicineData[0]);
+                               if (i === medicineData.length) {
                                    logger('prescription', `GetPrescriptionMedicines (prescriptionId: ${prescriptionId})`);
                                    res.status(200).json({
                                        medicines

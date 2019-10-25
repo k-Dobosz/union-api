@@ -174,13 +174,22 @@ router.delete('/:deviceId', auth({ roles: [4] }), (req, res, next) => {
     const deviceId = req.params.deviceId;
 
     if (deviceId !== undefined) {
-        db.query(`DELETE FROM devices WHERE id='${deviceId}'`, (err, data) => {
+        db.query(`SELECT * FROM devices WHERE id='${deviceId}'`, (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
-                        logger('device', `DeleteDevice (deviceId: ${deviceId})`);
-                        res.status(200).json({
-                            'message': 'Device successfully deleted'
+                        db.query(`DELETE FROM devices WHERE id='${deviceId}'`, (err, data) => {
+                            if (!err) {
+                                logger('device', `DeleteDevice (deviceId: ${deviceId})`);
+                                res.status(200).json({
+                                    'message': 'Device successfully deleted'
+                                });
+                            } else {
+                                logger('device', `Error 500 - DeleteDevice (deviceId: ${deviceId})`);
+                                res.status(500).json({
+                                    'error': err
+                                });
+                            }
                         });
                         break;
                     case 0:
@@ -238,91 +247,104 @@ router.post('/adduser', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                 switch (data.length) {
                     case 1:
                         db.query(`SELECT * FROM device_verification_pins WHERE deviceId='${deviceId}'`, (err, data) => {
-                            switch (data.length) {
-                                case 1:
-                                    if (data[0].pin === device_verify_pin) {
-                                        db.query(`SELECT * FROM users WHERE id='${userId}'`, (err, data) => {
-                                            if (!err) {
-                                                switch (data.length) {
-                                                    case 1:
-                                                        db.query(`SELECT * FROM device_user WHERE deviceId='${deviceId}' AND userId='${userId}'`, (err, data) => {
-                                                            if (!err) {
-                                                                switch (data.length) {
-                                                                    case 1:
-                                                                        logger('device', `Error 409 - AddUserToDevice (deviceId: ${deviceId})`);
-                                                                        res.status(409).json({
-                                                                            'message': 'Device already added to this user'
-                                                                        });
-                                                                        break;
-                                                                    case 0:
-                                                                        db.query(`INSERT INTO device_user VALUES(NULL, '${userId}', '${deviceId}')`, (err, data) => {
-                                                                            if (!err) {
-                                                                                logger('device', `AddUserToDevice (deviceId: ${deviceId})`);
-                                                                                res.status(200).json({
-                                                                                    'message': 'Device added'
+                            if (!err) {
+                                if (data[0].date > Date.now() - 30000) {
+                                    switch (data.length) {
+                                        case 1:
+                                            if (data[0].pin === device_verify_pin) {
+                                                db.query(`SELECT * FROM users WHERE id='${userId}'`, (err, data) => {
+                                                    if (!err) {
+                                                        switch (data.length) {
+                                                            case 1:
+                                                                db.query(`SELECT * FROM device_user WHERE deviceId='${deviceId}' AND userId='${userId}'`, (err, data) => {
+                                                                    if (!err) {
+                                                                        switch (data.length) {
+                                                                            case 1:
+                                                                                logger('device', `Error 409 - AddUserToDevice (deviceId: ${deviceId})`);
+                                                                                res.status(409).json({
+                                                                                    'message': 'Device already added to this user'
                                                                                 });
-                                                                            } else {
-                                                                                logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
-                                                                                res.status(500).json({
-                                                                                    'message': 'Database error'
+                                                                                break;
+                                                                            case 0:
+                                                                                db.query(`INSERT INTO device_user VALUES(NULL, '${userId}', '${deviceId}')`, (err, data) => {
+                                                                                    if (!err) {
+                                                                                        logger('device', `AddUserToDevice (deviceId: ${deviceId})`);
+                                                                                        res.status(200).json({
+                                                                                            'message': 'Device added'
+                                                                                        });
+                                                                                    } else {
+                                                                                        logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
+                                                                                        res.status(500).json({
+                                                                                            'message': 'Database error'
+                                                                                        });
+                                                                                    }
                                                                                 });
-                                                                            }
+                                                                                break;
+                                                                            default:
+                                                                                logger('device', `Error 409 - AddUserToDevice (deviceId: ${deviceId})`);
+                                                                                res.status(409).json({
+                                                                                    'message': 'Device already added to this user'
+                                                                                });
+                                                                                break;
+                                                                        }
+                                                                    } else {
+                                                                        logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
+                                                                        res.status(500).json({
+                                                                            'error': err
                                                                         });
-                                                                        break;
-                                                                    default:
-                                                                        logger('device', `Error 409 - AddUserToDevice (deviceId: ${deviceId})`);
-                                                                        res.status(409).json({
-                                                                            'message': 'Device already added to this user'
-                                                                        });
-                                                                        break;
-                                                                }
-                                                            } else {
+                                                                    }
+                                                                });
+                                                                break;
+                                                            case 0:
+                                                                logger('device', `Error 404 - AddUserToDevice (deviceId: ${deviceId})`);
+                                                                res.status(404).json({
+                                                                    'messsage': 'User with provided id not found'
+                                                                });
+                                                                break;
+                                                            default:
                                                                 logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
                                                                 res.status(500).json({
-                                                                    'error': err
+                                                                    'message': 'Database error'
                                                                 });
-                                                            }
-                                                        });
-                                                        break;
-                                                    case 0:
-                                                        logger('device', `Error 404 - AddUserToDevice (deviceId: ${deviceId})`);
-                                                        res.status(404).json({
-                                                            'messsage': 'User with provided id not found'
-                                                        });
-                                                        break;
-                                                    default:
+                                                                break;
+                                                        }
+                                                    } else {
                                                         logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
                                                         res.status(500).json({
-                                                            'message': 'Database error'
+                                                            'error': err
                                                         });
-                                                        break;
-                                                }
+                                                    }
+                                                });
                                             } else {
-                                                logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
-                                                res.status(500).json({
-                                                    'error': err
+                                                logger('device', `Error 400 - AddUserToDevice (deviceId: ${deviceId})`);
+                                                res.status(400).json({
+                                                    'message': 'Adding failed'
                                                 });
                                             }
-                                        });
-                                    } else {
-                                        logger('device', `Error 400 - AddUserToDevice (deviceId: ${deviceId})`);
-                                        res.status(400).json({
-                                            'message': 'Adding failed'
-                                        });
+                                            break;
+                                        case 0:
+                                            logger('device', `Error 404 - AddUserToDevice (deviceId: ${deviceId})`);
+                                            res.status(404).json({
+                                                'message': 'Device with provided id not found'
+                                            });
+                                            break;
+                                        default:
+                                            logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
+                                            res.status(500).json({
+                                                'message': 'Database error'
+                                            });
+                                            break;
                                     }
-                                    break;
-                                case 0:
-                                    logger('device', `Error 404 - AddUserToDevice (deviceId: ${deviceId})`);
-                                    res.status(404).json({
-                                        'message': 'Device with provided id not found'
+                                } else {
+                                    res.status(400).json({
+                                        'message': 'Verification pin expired'
                                     });
-                                    break;
-                                default:
-                                    logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
-                                    res.status(500).json({
-                                        'message': 'Database error'
-                                    });
-                                    break;
+                                }
+                            } else {
+                                logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
+                                res.status(500).json({
+                                    'error': err
+                                });
                             }
                         });
                         break;
@@ -347,7 +369,74 @@ router.post('/adduser', auth({ roles: [2, 3, 4] }), (req, res, next) => {
             }
         });
     } else {
-        logger('device', `Error 400 - AddUserToDevice (deviceId: ${deviceId})`);
+        logger('device', `Error 400 - AddUserToDevice`);
+        res.status(400).json({
+            'message': 'Not enough data provided'
+        });
+    }
+});
+
+/**
+ * @api {delete} /api/device/deluser Delete user from the device
+ * @apiName DeleteUserFromDevice
+ * @apiGroup Device
+ *
+ * @apiParam {Number} userId User ID
+ * @apiParam {Number} deviceId Device ID
+ * @apiParam {Number} device_verify_pin Device verification PIN
+ *
+ * @apiSuccessExample {json} Success
+ * HTTP/1.1 200 OK
+ * {
+ *     "message": "User successfully deleted from device"
+ * }
+ */
+
+router.post('/deluser', (req, res, next) => {
+    const userId = req.body.userId;
+    const deviceId = req.body.deviceId;
+
+    if (userId !== undefined && deviceId !== undefined) {
+        db.query(`SELECT * FROM device_user WHERE userId='${userId}' AND deviceId='${deviceId}'`, (err, data) => {
+            if (!err) {
+                switch (data.length) {
+                    case 1:
+                        db.query(`DELETE FROM device_user WHERE userId='${userId}' AND deviceId='${deviceId}'`, (err, data) => {
+                            if (!err) {
+                                logger('device', `DeleteUserFromDevice (deviceId: ${deviceId})`);
+                                res.status(200).json({
+                                    'message': 'User successfully deleted from device'
+                                });
+                            } else {
+                                logger('device', `Error 500 - DeleteUserFromDevice (deviceId: ${deviceId})`);
+                                res.status(500).json({
+                                    'error': err
+                                });
+                            }
+                        });
+                        break;
+                    case 0:
+                        logger('device', `Error 404 - DeleteUserFromDevice (deviceId: ${deviceId})`);
+                        res.status(404).json({
+                            'message': 'Device not found'
+                        });
+                        break;
+                    default:
+                        logger('device', `Error 500 - DeleteUserFromDevice (deviceId: ${deviceId})`);
+                        res.status(500).json({
+                            'message': 'Database error'
+                        });
+                        break;
+                }
+            } else {
+                logger('device', `Error 500 - DeleteUserFromDevice (deviceId: ${deviceId})`);
+                res.status(500).json({
+                    'error': err
+                });
+            }
+        });
+    } else {
+        logger('device', `Error 400 - DeleteUserFromDevice`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -480,6 +569,7 @@ router.post('/card/scan', (req, res, next) => {
                                                     });
                                                 } else {
                                                     logger('device', `Error 500 - cardScan (cardUid: ${cardUid})`);
+                                                    console.error(err);
                                                     res.status(500).json({
                                                         'error': err
                                                     });
@@ -501,6 +591,7 @@ router.post('/card/scan', (req, res, next) => {
                                     }
                                 } else {
                                     logger('device', `Error 500 - cardScan (cardUid: ${cardUid})`);
+                                    console.error(err);
                                     res.status(500).json({
                                         'error': err
                                     });
@@ -528,6 +619,7 @@ router.post('/card/scan', (req, res, next) => {
                 }
             } else {
                 logger('device', `Error 500 - cardScan (cardUid: ${cardUid})`);
+                console.error(err);
                 res.status(500).json({
                     'error': err
                 });
@@ -539,6 +631,47 @@ router.post('/card/scan', (req, res, next) => {
             'message': 'Not enough data provided'
         });
     }
+});
+
+/**
+ * @api {post} /api/device/choose Creates new visit for owner of scanned card
+ * @apiName chooseDevice
+ * @apiGroup Device
+ *
+ * @apiParam {Number} deviceId Device ID
+ * @apiParam {Number} userId User ID
+ *
+ * @apiSuccessExample {json} Success
+ * HTTP/1.1 201 OK
+ * {
+ *     "messsage": "Device last user has been updated"
+ * }
+ */
+
+router.post('/choose', (req, res, next) => {
+   const deviceId = req.body.deviceId;
+   const userId = req.body.userId;
+
+   if (deviceId !== undefined && userId !== undefined) {
+       db.query(`UPDATE devices SET last_user='${userId}' WHERE id='${deviceId}'`, (err, data) => {
+          if (!err) {
+              logger('device', `Error 500 - chooseDevice (deviceId: ${deviceId})`);
+              res.status(200).json({
+                  'message': 'Device last user has been updated'
+              });
+          } else {
+              logger('device', `Error 500 - chooseDevice (deviceId: ${deviceId})`);
+              res.status(500).json({
+                 'err': err
+              });
+          }
+       });
+   } else {
+       logger('device', `Error 400 - chooseDevice`);
+       res.status(400).json({
+           'message': 'Not enough data provided'
+       });
+   }
 });
 
 module.exports = router;
