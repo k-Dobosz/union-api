@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const auth = require('../auth')
-const jwt = require('jsonwebtoken');
+const auth = require('../auth');
+const logger = require('../logger');
 
 /**
  * @api {get} /api/medicine/ Request all medicine list
@@ -37,10 +37,12 @@ const jwt = require('jsonwebtoken');
 router.get('/', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     db.query(`SELECT * FROM medicines`, (err, data) => {
         if (!err) {
+            logger('medicine', `GetAllMedicines`);
             res.status(200).json({
                 'data': data
             })
         } else {
+            logger('medicine', `Error 500 - GetAllMedicines`);
             res.status(500).json({
                 'error': err
             });
@@ -82,6 +84,7 @@ router.get('/:medicineId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
+                        logger('medicine', `GetMedicine (medicineId ${medicineId})`);
                         res.status(200).json({
                             'id': data[0].id,
                             'name': data[0].name,
@@ -90,23 +93,27 @@ router.get('/:medicineId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                         });
                         break;
                     case 0:
+                        logger('medicine', `Error 404 - GetMedicine (medicineId ${medicineId})`);
                         res.status(404).json({
                             'message': 'Medicine with provided id not found'
                         });
                         break;
                     default:
+                        logger('medicine', `Error 500 - GetMedicine (medicineId ${medicineId})`);
                         res.status(500).json({
                             'message': 'Database error'
                         });
                         break;
                 }
             } else {
+                logger('medicine', `Error 500 - GetMedicine (medicineId ${medicineId})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('medicine', `Error 400 - GetMedicine`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -141,6 +148,7 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
+                        logger('medicine', `Error 500 - AddMedicine (name ${name})`);
                         res.status(500).json({
                             'message': 'Medicine with provided name already exists'
                         });
@@ -148,11 +156,13 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
                     case 0:
                         db.query(`INSERT INTO medicines VALUES(NULL, '${name}', '${description}', '${takingFrequency}')`, (err, data) => {
                             if (!err) {
+                                logger('medicine', `AddMedicine (name ${name})`);
                                 res.status(201).json({
                                     'message': 'Medicine successfully added',
                                     'data': data
                                 });
                             } else {
+                                logger('medicine', `Error 500 - AddMedicine (name ${name})`);
                                 res.status(500).json({
                                     'error': err
                                 });
@@ -160,18 +170,21 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
                         });
                         break;
                     default:
+                        logger('medicine', `Error 500 - AddMedicine (name ${name})`);
                         res.status(500).json({
                             'message': 'Database error'
                         });
                         break;
                 }
             } else {
+                logger('medicine', `Error 500 - AddMedicine (name ${name})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('medicine', `Error 400 - AddMedicine`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -200,28 +213,33 @@ router.delete('/:medicineId', auth({ roles: [4] }), (req, res, next) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
+                        logger('medicine', `DeleteMedicine (medicineId ${medicineId})`);
                         res.status(200).json({
                             'message': 'Medicine successfully deleted'
                         });
                         break;
                     case 0:
+                        logger('medicine', `Error 404 - DeleteMedicine (medicineId ${medicineId})`);
                         res.status(404).json({
                             'message': 'Medicine not found'
                         });
                         break;
                     default:
+                        logger('medicine', `Error 500 - DeleteMedicine (medicineId ${medicineId})`);
                         res.status(500).json({
                             'message': 'Database error'
                         });
                         break;
                 }
             } else {
+                logger('medicine', `Error 500 - DeleteMedicine (medicineId ${medicineId})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('medicine', `Error 400 - DeleteMedicine (medicineId ${medicineId})`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const auth = require('../auth');
+const logger = require('../logger');
 
 /**
  * @api {get} /api/device/:deviceId Get info about device
@@ -33,29 +34,33 @@ router.get('/:deviceId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
+                        logger('device', `GetDevice (deviceId: ${deviceId})`);
                         res.status(200).json({
                             'data': data
                         });
                         break;
                     case 0:
+                        logger('device', `Error 404 - GetDevice (deviceId: ${deviceId})`);
                         res.status(404).json({
-                            'error_code': 404,
                             'message': 'Device with provided id not found'
                         });
                         break;
                     default:
+                        logger('device', `Error 500 - GetDevice (deviceId: ${deviceId})`);
                         res.status(500).json({
                             'message': 'Database error'
                         });
                         break;
                 }
             } else {
+                logger('device', `Error 500 - GetDevice (deviceId: ${deviceId})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('device', `Error 400 - GetDevice`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -83,17 +88,20 @@ router.post('/register', (req, res, next) => {
     if (pin !== undefined) {
         db.query(`INSERT INTO devices VALUES(NULL, '${pin}', NULL)`, (err, data) => {
             if (!err) {
+                logger('device', `RegisterDevice (deviceId: ${data.insertId})`);
                 res.status(201).json({
                     'message': 'Device successfully registered',
                     'id': data.insertId
                 });
             } else {
+                logger('device', `Error 500 - RegisterDevice`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('device', `Error 400 - RegisterDevice`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -123,21 +131,25 @@ router.post('/login', (req, res, next) => {
         db.query(`SELECT * FROM devices WHERE id='${id}'`, (err, data) => {
             if (!err) {
                 if (pin === data[0].pin) {
+                    logger('device', `LoginDevice (deviceId: ${id})`);
                     res.status(200).json({
                         'message': 'Auth successful'
                     });
                 } else {
-                    res.status(500).json({
+                    logger('device', `Error 401 - LoginDevice (deviceId: ${id})`);
+                    res.status(401).json({
                         'message': 'Auth failed'
                     });
                 }
             } else {
+                logger('device', `Error 500 - LoginDevice (deviceId: ${id})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('device', `Error 400 - LoginDevice`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -166,28 +178,33 @@ router.delete('/:deviceId', auth({ roles: [4] }), (req, res, next) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
+                        logger('device', `DeleteDevice (deviceId: ${deviceId})`);
                         res.status(200).json({
                             'message': 'Device successfully deleted'
                         });
                         break;
                     case 0:
+                        logger('device', `Error 404 - DeleteDevice (deviceId: ${deviceId})`);
                         res.status(404).json({
                             'message': 'Device not found'
                         });
                         break;
                     default:
+                        logger('device', `Error 500 - DeleteDevice (deviceId: ${deviceId})`);
                         res.status(500).json({
                             'message': 'Database error'
                         });
                         break;
                 }
             } else {
+                logger('device', `Error 500 - DeleteDevice (deviceId: ${deviceId})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('device', `Error 400 - DeleteDevice`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -232,6 +249,7 @@ router.post('/adduser', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                                                             if (!err) {
                                                                 switch (data.length) {
                                                                     case 1:
+                                                                        logger('device', `Error 409 - AddUserToDevice (deviceId: ${deviceId})`);
                                                                         res.status(409).json({
                                                                             'message': 'Device already added to this user'
                                                                         });
@@ -239,10 +257,12 @@ router.post('/adduser', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                                                                     case 0:
                                                                         db.query(`INSERT INTO device_user VALUES(NULL, '${userId}', '${deviceId}')`, (err, data) => {
                                                                             if (!err) {
+                                                                                logger('device', `AddUserToDevice (deviceId: ${deviceId})`);
                                                                                 res.status(200).json({
                                                                                     'message': 'Device added'
                                                                                 });
                                                                             } else {
+                                                                                logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
                                                                                 res.status(500).json({
                                                                                     'message': 'Database error'
                                                                                 });
@@ -250,12 +270,14 @@ router.post('/adduser', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                                                                         });
                                                                         break;
                                                                     default:
+                                                                        logger('device', `Error 409 - AddUserToDevice (deviceId: ${deviceId})`);
                                                                         res.status(409).json({
                                                                             'message': 'Device already added to this user'
                                                                         });
                                                                         break;
                                                                 }
                                                             } else {
+                                                                logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
                                                                 res.status(500).json({
                                                                     'error': err
                                                                 });
@@ -263,34 +285,40 @@ router.post('/adduser', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                                                         });
                                                         break;
                                                     case 0:
+                                                        logger('device', `Error 404 - AddUserToDevice (deviceId: ${deviceId})`);
                                                         res.status(404).json({
                                                             'messsage': 'User with provided id not found'
                                                         });
                                                         break;
                                                     default:
+                                                        logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
                                                         res.status(500).json({
                                                             'message': 'Database error'
                                                         });
                                                         break;
                                                 }
                                             } else {
+                                                logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
                                                 res.status(500).json({
                                                     'error': err
                                                 });
                                             }
                                         });
                                     } else {
+                                        logger('device', `Error 400 - AddUserToDevice (deviceId: ${deviceId})`);
                                         res.status(400).json({
                                             'message': 'Adding failed'
                                         });
                                     }
                                     break;
                                 case 0:
+                                    logger('device', `Error 404 - AddUserToDevice (deviceId: ${deviceId})`);
                                     res.status(404).json({
                                         'message': 'Device with provided id not found'
                                     });
                                     break;
                                 default:
+                                    logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
                                     res.status(500).json({
                                         'message': 'Database error'
                                     });
@@ -299,23 +327,27 @@ router.post('/adduser', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                         });
                         break;
                     case 0:
+                        logger('device', `Error 404 - AddUserToDevice (deviceId: ${deviceId})`);
                         res.status(404).json({
                             'message': 'Device with provided uid not found'
                         });
                         break;
                     default:
+                        logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
                         res.status(500).json({
                             'message': 'Database error'
                         });
                         break;
                 }
             } else {
+                logger('device', `Error 500 - AddUserToDevice (deviceId: ${deviceId})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('device', `Error 400 - AddUserToDevice (deviceId: ${deviceId})`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -348,10 +380,12 @@ router.post('/verify', (req, res, next) => {
                    case 1:
                        db.query(`UPDATE device_verification_pins SET pin='${device_verify_pin}' WHERE deviceId='${deviceId}'`, (err, data) => {
                            if (!err) {
+                               logger('device', `VerifyDevice (deviceId: ${deviceId})`);
                                res.status(200).json({
                                    'message': 'Verification pin updated successfully'
                                });
                            } else {
+                               logger('device', `Error 500 - VerifyDevice (deviceId: ${deviceId})`);
                                res.status(500).json({
                                    'error': err
                                });
@@ -361,10 +395,12 @@ router.post('/verify', (req, res, next) => {
                    case 0:
                        db.query(`INSERT INTO device_verification_pins VALUES(NULL, '${deviceId}', '${device_verify_pin}', CURRENT_TIMESTAMP)`, (err, data) => {
                            if (!err) {
+                               logger('device', `VerifyDevice (deviceId: ${deviceId})`);
                                res.status(201).json({
                                    'message': 'Verification pin created successfully'
                                });
                            } else {
+                               logger('device', `Error 500 - VerifyDevice (deviceId: ${deviceId})`);
                                res.status(500).json({
                                    'error': err
                                });
@@ -374,10 +410,12 @@ router.post('/verify', (req, res, next) => {
                    default:
                        db.query(`UPDATE device_verification_pins SET pin='${device_verify_pin}' WHERE deviceId='${deviceId}'`, (err, data) => {
                            if (!err) {
+                               logger('device', `VerifyDevice (deviceId: ${deviceId})`);
                                res.status(200).json({
                                    'message': 'Verification pin updated successfully'
                                });
                            } else {
+                               logger('device', `Error 500 - VerifyDevice (deviceId: ${deviceId})`);
                                res.status(500).json({
                                    'error': err
                                });
@@ -386,12 +424,14 @@ router.post('/verify', (req, res, next) => {
                        break;
                }
            } else {
+               logger('device', `Error 500 - VerifyDevice (deviceId: ${deviceId})`);
                res.status(500).json({
                    'error': err
                });
            }
        });
    } else {
+       logger('device', `Error 400 - VerifyDevice`);
        res.status(400).json({
            'message': 'Not enough data provided'
        });
@@ -422,63 +462,79 @@ router.post('/card/scan', (req, res, next) => {
     console.log(cardUid);
 
     if (deviceId !== undefined && cardPin !== undefined && cardPin !== undefined) {
-        db.query(`SELECT * FROM cards WHERE cardUid='${cardUid}' AND pin='${cardPin}'`, (err, data_usr) => {
+        db.query(`SELECT * FROM cards WHERE cardUid='${cardUid}'`, (err, data_card) => {
             if (!err) {
-                switch (data_usr.length) {
+                switch (data_card.length) {
                     case 1:
-                        db.query(`SELECT last_user FROM devices WHERE id='${deviceId}'`, (err, data_dev) => {
-                            if (!err) {
-                                switch (data_dev.length) {
-                                    case 1:
-                                        // id, reason, description, doctorId, patientId, date
-                                        db.query(`INSERT INTO visits VALUES(NULL, '', '', '${data_dev[0].last_user}', '${data_usr[0].userId}', CURRENT_TIMESTAMP)`, (err, data) => {
-                                            if (!err) {
-                                                res.status(201).json({
-                                                    'message': 'New visit created'
-                                                });
-                                            } else {
-                                                res.status(500).json({
-                                                    'error': err
-                                                });
-                                            }
-                                        });
-                                        break;
-                                    case 0:
-                                        res.status(404).json({
-                                            'message': 'No user found for provided device'
-                                        });
-                                        break;
-                                    default:
-                                        res.status(500).json({
-                                            'error': 'Database error'
-                                        });
-                                        break;
+                        if (data_card[0].pin === cardPin) {
+                            db.query(`SELECT last_user FROM devices WHERE id='${deviceId}'`, (err, data_dev) => {
+                                if (!err) {
+                                    switch (data_dev.length) {
+                                        case 1:
+                                            // id, reason, description, doctorId, patientId, date
+                                            db.query(`INSERT INTO visits VALUES(NULL, '', '', '${data_dev[0].last_user}', '${data_card[0].userId}', CURRENT_TIMESTAMP)`, (err, data) => {
+                                                if (!err) {
+                                                    logger('device', `cardScan (cardUid: ${cardUid})`);
+                                                    res.status(201).json({
+                                                        'message': 'New visit created'
+                                                    });
+                                                } else {
+                                                    logger('device', `Error 500 - cardScan (cardUid: ${cardUid})`);
+                                                    res.status(500).json({
+                                                        'error': err
+                                                    });
+                                                }
+                                            });
+                                            break;
+                                        case 0:
+                                            logger('device', `Error 404 - cardScan (cardUid: ${cardUid})`);
+                                            res.status(404).json({
+                                                'message': 'Device with provided id does not exist'
+                                            });
+                                            break;
+                                        default:
+                                            logger('device', `Error 409 - cardScan (cardUid: ${cardUid})`);
+                                            res.status(409).json({
+                                                'error': 'Found several devices with the same id'
+                                            });
+                                            break;
+                                    }
+                                } else {
+                                    logger('device', `Error 500 - cardScan (cardUid: ${cardUid})`);
+                                    res.status(500).json({
+                                        'error': err
+                                    });
                                 }
-                            } else {
-                                res.status(500).json({
-                                    'error': 'Database error'
-                                });
-                            }
-                        });
+                            });
+                        } else {
+                            logger('device', `Error 400 - cardScan (cardUid: ${cardUid})`);
+                            res.status(400).json({
+                                'message': 'Card authentication failed'
+                            });
+                        }
                         break;
                     case 0:
+                        logger('device', `Error 404 - cardScan (cardUid: ${cardUid})`);
                         res.status(404).json({
-                            'message': 'Card with provided credentials not found'
+                            'message': 'Card with provided uid not found'
                         });
                         break;
                     default:
-                        res.status(500).json({
-                            'error': 'Database error'
+                        logger('device', `Error 409 - cardScan (cardUid: ${cardUid})`);
+                        res.status(409).json({
+                            'error': 'Found several cards with the same uid'
                         });
                         break;
                 }
             } else {
+                logger('device', `Error 500 - cardScan (cardUid: ${cardUid})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('device', `Error 400 - cardScan (cardUid: ${cardUid})`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });

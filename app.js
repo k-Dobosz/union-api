@@ -8,6 +8,7 @@ const deviceRouter = require('./api/routes/device');
 const userRouter = require('./api/routes/user');
 const medicineRouter = require('./api/routes/medicine');
 const prescriptionRouter = require('./api/routes/prescription');
+const institutionRouter = require('./api/routes/institution')
 
 app.use(logger('dev'));
 app.use(bodyParser.json());
@@ -28,6 +29,7 @@ app.use('/api/device', deviceRouter);
 app.use('/api/user', userRouter);
 app.use('/api/medicine', medicineRouter);
 app.use('/api/prescription', prescriptionRouter);
+app.use('/api/institution', institutionRouter)
 
 app.use((req, res, next) => {
     const error = new Error('Not found');

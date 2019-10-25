@@ -41,10 +41,12 @@ router.get('/:userId', auth({ roles: [3, 4] }), (req, res, next) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
+                        logger('user', `GetUser (id: ${userId})`);
                         res.status(200).json({
                             'id': data[0].id,
                             'email': data[0].email,
                             'pesel': data[0].pesel,
+                            'institutionId': data[0].institutionId,
                             'first_name': data[0].first_name,
                             'second_name': data[0].second_name,
                             'last_name': data[0].last_name,
@@ -58,24 +60,28 @@ router.get('/:userId', auth({ roles: [3, 4] }), (req, res, next) => {
                         });
                         break;
                     case 0:
+                        logger('user', `Error 404 - GetUser (id: ${userId})`);
                         res.status(404).json({
                             'error_code': 404,
                             'message': 'User with provided id not found'
                         });
                         break;
                     default:
+                        logger('user', `Error 500(Too many users found) - GetUser (id: ${userId})`);
                         res.status(500).json({
                             'message': 'Database error'
                         });
                         break;
                 }
             } else {
+                logger('user', `Error 500 - GetUser (id: ${userId})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('user', `Error 400 - GetUser (id: ${userId})`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -132,6 +138,7 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
        db.query(`SELECT * FROM users WHERE pesel='${pesel}'`, (err, data) => {
            if (!err) {
                if (data.length >= 1) {
+                   logger('user', `Error 500(User exists) - RegisterUser (pesel: ${pesel})`);
                    res.status(500).json({
                        'message': 'User with this pesel exists'
                    });
@@ -139,6 +146,7 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
                    db.query(`SELECT * FROM users WHERE email='${email}'`, (err, data) => {
                        if (!err) {
                            if (data.length >= 1) {
+                               logger('user', `Error 500(User exits) - RegisterUser (email: ${email})`);
                                res.status(500).json({
                                    'message': 'User with this email exists'
                                });
@@ -148,17 +156,20 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
                                        db.query(
                                            `INSERT INTO users VALUES(NULL, '${email}', '${hash}', '${pesel}', '${role}', '${first_name}', '${second_name}', '${last_name}', '${mother_name}', '${father_name}', '${gender}', '${height}','${date_of_birth}','${place_of_birth}','${address}')`, (err, data) => {
                                                if (!err) {
+                                                   logger('user', `RegisterUser (email: ${email})`);
                                                    res.status(201).json({
                                                        'message': 'User successfully registered',
                                                        'data': data
                                                    });
                                                } else {
+                                                   logger('user', `Error 500 - RegisterUser (email: ${email})`);
                                                    res.status(500).json({
                                                        'error': err
                                                    });
                                                }
                                            });
                                    } else {
+                                       logger('user', `Error 500 - RegisterUser (email: ${email})`);
                                        res.status(500).json({
                                            'error': err
                                        });
@@ -166,6 +177,7 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
                                });
                            }
                        } else {
+                           logger('user', `Error 500 - RegisterUser (email: ${email})`);
                            res.status(500).json({
                                'error': err
                            });
@@ -173,12 +185,14 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
                    });
                }
            } else {
+               logger('user', `Error 500 - RegisterUser (email: ${email})`);
                res.status(500).json({
                    'error': err
                });
            }
        });
    } else {
+       logger('user', `Error 400 - RegisterUser (email: ${email})`);
        res.status(400).json({
            'message': 'Not enough data provided'
        });
@@ -210,6 +224,7 @@ router.post('/login', (req, res, next) => {
         db.query(`SELECT * FROM users WHERE email='${email}'`, (err, data) => {
             if (!err) {
                 if (data.length === 0) {
+                    logger('user', `Error 401 - LoginUser (email: ${email})`);
                     return res.status(401).json({
                         'message': 'Auth failed'
                     });
@@ -239,24 +254,27 @@ router.post('/login', (req, res, next) => {
 
                                 db.query(`UPDATE users SET last_token='${token}', last_refresh_token='${refresh_token}'`, (err, updateData) => {
                                     if (!err) {
-                                        logger('user', `User with id ${data[0].id} logged in`);
+                                        logger('user', `LoginUser (email: ${email})`);
                                         return res.status(200).json({
                                             'message': 'Auth successful',
                                             'token': token,
                                             'refresh_token': refresh_token
                                         });
                                     } else {
+                                        logger('user', `Error 500 - LoginUser (email: ${email})`);
                                         res.status(500).json({
                                             'error': err
                                         })
                                     }
                                 });
                             } else {
+                                logger('user', `Error 401 - LoginUser (email: ${email})`);
                                 return res.status(401).json({
                                     'message': 'Auth failed'
                                 });
                             }
                         } else {
+                            logger('user', `Error 500 - LoginUser (email: ${email})`);
                             res.status(500).json({
                                 'error': err
                             });
@@ -264,12 +282,14 @@ router.post('/login', (req, res, next) => {
                     });
                 }
             } else {
+                logger('user', `Error 500 - LoginUser (email: ${email})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('user', `Error 400 - LoginUser (email: ${email})`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -298,28 +318,33 @@ router.delete('/:userId', auth({ roles: [4] }), (req, res, next) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
+                        logger('user', `DeleteUser (id: ${userId})`);
                         res.status(200).json({
                             'message': 'User successfully deleted'
                         });
                         break;
                     case 0:
+                        logger('user', `Error 404 - DeleteUser (id: ${userId})`);
                         res.status(404).json({
                             'message': 'User not found'
                         });
                         break;
                     default:
+                        logger('user', `Error 500 - DeleteUser (id: ${userId})`);
                         res.status(500).json({
                             'message': 'Database error'
                         });
                         break;
                 }
             } else {
+                logger('user', `Error 500 - DeleteUser (id: ${userId})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('user', `Error 400 - DeleteUser (id: ${userId})`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
@@ -374,39 +399,68 @@ router.post('/refresh_token', (req, res, next) => {
 
                            db.query(`UPDATE users SET last_token='${new_token}', last_refresh_token='${new_refresh_token}'`, (err, data) => {
                                if (!err) {
+                                   logger('user', `RefreshTokenUser (id: ${decoded.userId})`);
                                    res.status(200).json({
                                        'new_token': new_token,
                                        'new_refresh_token': new_refresh_token
                                    });
                                } else {
+                                   logger('user', `Error 500 - RefreshTokenUser (id: ${decoded.userId})`);
                                    res.status(500).json({
                                        'error': err
                                    });
                                }
                            });
                        } else {
+                           logger('user', `Error 401 - RefreshTokenUser (id: ${decoded.userId})`);
                            res.status(401).json({
                                'message': 'Token refresh failed',
                            });
                        }
                    } else {
+                       logger('user', `Error 500 - RefreshTokenUser (id: ${decoded.userId})`);
                        res.status(500).json({
                            'error': err
                        });
                    }
                });
            } else {
+               logger('user', `Error 401 - RefreshTokenUser (id: ${decoded.userId})`);
                res.status(401).json({
                    'message': 'Token refresh failed',
                });
            }
        });
    } else {
+       logger('user', `Error 400 - RefreshTokenUser`);
        res.status(400).json({
            'message': 'Not enough data provided'
        });
    }
 });
+
+/**
+ * @api {post} /api/user/visits_today Get today visits
+ * @apiName GetTodayVisitsUser
+ * @apiGroup User
+ *
+ * @apiParam {Number} doctorId Doctor ID
+ *
+ * @apiSuccessExample {json} Success
+ * HTTP/1.1 200 OK
+ * {
+ *     "data": [
+ *         {
+ *             "id": 1,
+ *             "reason: "Example reason",
+ *             "description": "Example description",
+ *             "doctorId": 1,
+ *             "patientId": 2,
+ *             "date": "2019-10-24T20:00:00.000Z"
+ *         }
+ *     ]
+ * }
+ */
 
 router.post('/visits_today', auth({ roles: [3, 4] }), (req, res, next) => {
     const doctorId = req.body.doctorId;
@@ -414,21 +468,48 @@ router.post('/visits_today', auth({ roles: [3, 4] }), (req, res, next) => {
     if (doctorId !== undefined) {
         db.query(`SELECT * FROM visits WHERE doctorId='${doctorId}' AND DATE(date) = DATE(NOW())`, (err, data) => {
             if (!err) {
+                logger('user', `GetTodayVisitsUser (doctorId: ${doctorId})`);
                 res.status(200).json({
                     data
                 });
             } else {
+                logger('user', `Error 500 - GetTodayVisitsUser (doctorId: ${doctorId})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('user', `Error 400 - GetTodayVisitsUser (doctorId: ${doctorId})`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
     }
 });
+
+/**
+ * @api {post} /api/user/get_visits Get all visits of patient
+ * @apiName GetAllVisitsOfPatient
+ * @apiGroup User
+ *
+ * @apiParam {Number} doctorId Doctor ID
+ * @apiParam {Number} patientId Patient ID
+ *
+ * @apiSuccessExample {json} Success
+ * HTTP/1.1 200 OK
+ * {
+ *     "data": [
+ *         {
+ *             "id": 1,
+ *             "reason: "Example reason",
+ *             "description": "Example description",
+ *             "doctorId": 1,
+ *             "patientId": 2,
+ *             "date": "2019-10-24T20:00:00.000Z"
+ *         }
+ *     ]
+ * }
+ */
 
 router.post('/get_visits', auth({ roles: [3, 4] }), (req, res, next) => {
     const doctorId = req.body.doctorId;
@@ -438,21 +519,70 @@ router.post('/get_visits', auth({ roles: [3, 4] }), (req, res, next) => {
         db.query(`SELECT * FROM visits WHERE doctorId='${doctorId}' AND patientId='${patientId}' ORDER BY date`, (err, data) => {
             if (!err) {
                 if (data.length > 0 ) {
+                    logger('user', `GetTodayVisitsUser (patientId: ${patientId})`);
                     res.status(200).json({
                         data
                     });
                 } else {
+                    logger('user', `Error 404 - GetTodayVisitsUser (patientId: ${patientId})`);
                     res.status(404).json({
-                        'message': ''
+                        'message': 'No visits found for provided patientId'
                     });
                 }
             } else {
+                logger('user', `Error 500 - GetTodayVisitsUser (patientId: ${patientId})`);
                 res.status(500).json({
                     'error': err
                 });
             }
         });
     } else {
+        logger('user', `Error 400 - GetTodayVisitsUser (patientId: ${patientId})`);
+        res.status(400).json({
+            'message': 'Not enough data provided'
+        });
+    }
+});
+
+/**
+ * @api {post} /api/user/:userId/get_devices Get user's devices
+ * @apiName GetUserDevices
+ * @apiGroup User
+ *
+ * @apiParam {Number} userId User ID
+ *
+ * @apiSuccessExample {json} Success
+ * HTTP/1.1 200 OK
+ * {
+ *     "data": [
+ *         {
+ *             "id": 1,
+ *             "userId": 1,
+ *             "deviceId": 1
+ *         }
+ *     ]
+ * }
+ */
+
+router.get('/:userId/get_devices', auth({ roles: [2, 3, 4]}), (req, res, next) => {
+    const userId = req.params.userId;
+
+    if (userId !== undefined) {
+        db.query(`SELECT * FROM device_user WHERE userId='${userId}'`, (err, data) => {
+            if (!err) {
+                logger('user', `GetUserDevices (userId: ${userId})`);
+                res.status(200).json({
+                    data
+                });
+            } else {
+                logger('user', `Error 500 - GetUserDevices (userId: ${userId})`);
+                res.status(500).json({
+                    'error': err
+                });
+            }
+        })
+    } else {
+        logger('user', `Error 400 - GetUserDevices (userId: ${userId})`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });
