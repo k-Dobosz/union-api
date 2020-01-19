@@ -218,7 +218,7 @@ router.post('/add', auth({ roles: [3, 4] }), (req, res, next) => {
                 logger('prescription', `GetPrescriptionByPatientId (patientId: ${patientId})`);
                 res.status(201).json({
                     'message': 'Prescription created successfully',
-                    'insertId': data[0].insertId
+                    'insertId': data.insertId
                 });
             } else {
                 logger('prescription', `Error 500 - GetPrescriptionByPatientId (patientId: ${patientId})`);
@@ -323,14 +323,6 @@ router.delete('/:prescriptionId', auth({ roles: [4] }), (req, res, next) => {
  * }
  */
 
-// router.post('/medicines/add', auth({ roles: [2, 3, 4]}), (req, res, next) => {
-//     const prescriptionId = req.body.prescriptionId;
-//     const medicineId = req.body.medicineId;
-//
-//     if (prescriptionId !== undefined && medicineId !== undefined) {
-//     }
-// });
-
 router.get('/:prescriptionId/medicines', auth({ roles: [2, 3, 4]}), (req, res, next) => {
     const prescriptionId = req.params.prescriptionId;
 
@@ -344,7 +336,7 @@ router.get('/:prescriptionId/medicines', auth({ roles: [2, 3, 4]}), (req, res, n
                            if (!err) {
                                medicineData[0].taking_frequency = data[i].taking_frequency;
                                medicines.push(medicineData[0]);
-                               if (i === medicineData.length) {
+                               if (i === data.length - 1) {
                                    logger('prescription', `GetPrescriptionMedicines (prescriptionId: ${prescriptionId})`);
                                    res.status(200).json({
                                        medicines
@@ -373,6 +365,54 @@ router.get('/:prescriptionId/medicines', auth({ roles: [2, 3, 4]}), (req, res, n
         })
     } else {
         logger('prescription', `Error 400 - GetPrescriptionMedicines`);
+        res.status(400).json({
+            'message': 'Not enough data provided'
+        });
+    }
+});
+
+/**
+ * @api {post} /api/prescription/add Add medicine to prescription
+ * @apiName AddPrescriptionMedicine
+ * @apiGroup Prescription
+ *
+ * @apiParam {Number} prescriptionId Prescription ID
+ * @apiParam {Number} medicineId Medicine ID
+ * @apiParam {Number} taking_frequency Taking frequency
+ *
+ * @apiSuccessExample {json} Success
+ * HTTP/1.1 201 OK
+ * {
+ *     "message": "Prescription created successfully",
+ *     "insertId": 1
+ * }
+ */
+
+router.post('/:prescriptionId/medicines/add', auth({ roles: [2, 3, 4]}), (req, res, next) => {
+    const prescriptionId = req.params.prescriptionId;
+    const medicineId = req.body.medicineId;
+    const taking_frequency = req.body.taking_frequency;
+
+    if (prescriptionId !== undefined && medicineId !== undefined && taking_frequency !== undefined) {
+        db.query(`SELECT * FROM prescription_medicine WHERE prescriptionId='${prescriptionId}' AND medicineId='${medicineId}'`, (err, data) => {2
+            if (!err) {
+                db.query(`INSERT INTO prescription_medicine VALUES(NULL, '${prescriptionId}', '${medicineId}', '${taking_frequency}')`, (err, data) => {
+                    if (!err) {
+                        logger('prescription', `AddPrescriptionMedicine (prescriptionId: ${prescriptionId})`);
+                        res.status(201).json({
+                            'message': 'Medicine added successfully'
+                        });
+                    } else {
+                        logger('prescription', `Error 500 - AddPrescriptionMedicine (prescriptionId: ${prescriptionId})`);
+                        res.status(500).json({
+                            'error': err
+                        });
+                    }
+                });
+            }
+        });
+    } else {
+        logger('prescription', `Error 400 - AddPrescriptionMedicine`);
         res.status(400).json({
             'message': 'Not enough data provided'
         });

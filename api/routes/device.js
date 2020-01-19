@@ -86,7 +86,7 @@ router.post('/register', (req, res, next) => {
     let pin = req.body.pin;
 
     if (pin !== undefined) {
-        db.query(`INSERT INTO devices VALUES(NULL, '${pin}', NULL)`, (err, data) => {
+        db.query(`INSERT INTO devices VALUES(NULL, '${pin}', NULL, NULL)`, (err, data) => {
             if (!err) {
                 logger('device', `RegisterDevice (deviceId: ${data.insertId})`);
                 res.status(201).json({
@@ -560,13 +560,30 @@ router.post('/card/scan', (req, res, next) => {
                                 if (!err) {
                                     switch (data_dev.length) {
                                         case 1:
-                                            // id, reason, description, doctorId, patientId, date
-                                            db.query(`INSERT INTO visits VALUES(NULL, '', '', '${data_dev[0].last_user}', '${data_card[0].userId}', CURRENT_TIMESTAMP)`, (err, data) => {
+                                            db.query(`SELECT * FROM visits WHERE doctorId='${data_dev[0].last_user}' AND patientId='${data_card[0].userId}' AND DATE(date) = DATE(NOW()) `, (err, data_visits) => {
                                                 if (!err) {
-                                                    logger('device', `cardScan (cardUid: ${cardUid})`);
-                                                    res.status(201).json({
-                                                        'message': 'New visit created'
-                                                    });
+                                                    if (data_visits.length >= 1) {
+                                                        logger('device', `Status 304 - cardScan (cardUid: ${cardUid})`);
+                                                        res.status(200).json({
+                                                            'messsage': 'Visit already exists'
+                                                        });
+                                                    } else {
+                                                        // id, reason, description, doctorId, patientId, date
+                                                        db.query(`INSERT INTO visits VALUES(NULL, '', '', '${data_dev[0].last_user}', '${data_card[0].userId}', CURRENT_TIMESTAMP)`, (err, data) => {
+                                                            if (!err) {
+                                                                logger('device', `cardScan (cardUid: ${cardUid})`);
+                                                                res.status(201).json({
+                                                                    'message': 'New visit created'
+                                                                });
+                                                            } else {
+                                                                logger('device', `Error 500 - cardScan (cardUid: ${cardUid})`);
+                                                                console.error(err);
+                                                                res.status(500).json({
+                                                                    'error': err
+                                                                });
+                                                            }
+                                                        });
+                                                    }
                                                 } else {
                                                     logger('device', `Error 500 - cardScan (cardUid: ${cardUid})`);
                                                     console.error(err);
