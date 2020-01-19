@@ -293,7 +293,7 @@ router.delete('/:prescriptionId', auth({ roles: [4] }), (req, res, next) => {
 });
 
 /**
- * @api {delete} /api/:prescriptionId/medicines Get prescription medicines
+ * @api {get} /api/:prescriptionId/medicines Get prescription medicines
  * @apiName GetPrescriptionMedicines
  * @apiGroup Prescription
  *
@@ -383,8 +383,7 @@ router.get('/:prescriptionId/medicines', auth({ roles: [2, 3, 4]}), (req, res, n
  * @apiSuccessExample {json} Success
  * HTTP/1.1 201 OK
  * {
- *     "message": "Prescription created successfully",
- *     "insertId": 1
+ *     "message": "Medicine created successfully",
  * }
  */
 
