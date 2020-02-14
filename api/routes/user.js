@@ -43,7 +43,7 @@ router.get('/:userId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const userId = req.params.userId;
 
     if (userId !== undefined) {
-        db.query(`SELECT * FROM users WHERE id='${userId}'`, (err, data) => {
+        db.query(`SELECT * FROM users WHERE id = ?`, [ userId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -153,7 +153,7 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
        address_city !== undefined &&
        address_country !== undefined
    ) {
-       db.query(`SELECT * FROM users WHERE pesel='${pesel}'`, (err, data) => {
+       db.query(`SELECT * FROM users WHERE pesel = ?`, [ pesel ], (err, data) => {
            if (!err) {
                if (data.length >= 1) {
                    logger('user', `Error 500(User exists) - RegisterUser (pesel: ${pesel})`);
@@ -161,7 +161,7 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
                        'message': 'User with this pesel exists'
                    });
                } else {
-                   db.query(`SELECT * FROM users WHERE email='${email}'`, (err, data) => {
+                   db.query(`SELECT * FROM users WHERE email = ?`, [ email ], (err, data) => {
                        if (!err) {
                            if (data.length >= 1) {
                                logger('user', `Error 500(User exits) - RegisterUser (email: ${email})`);
@@ -172,7 +172,26 @@ router.post('/register', auth({ roles: [4] }), (req, res, next) => {
                                bcrypt.hash(password, 10, (err, hash) => {
                                    if (!err) {
                                        db.query(
-                                           `INSERT INTO users VALUES(NULL, '${email}', '${hash}', '${pesel}', '${role}', '${first_name}', '${second_name}', '${last_name}', '${mother_name}', '${father_name}', '${gender}', '${height}','${date_of_birth}','${place_of_birth}','${address_street}''${address_house_number}''${address_postcode}''${address_city}''${address_country}')`, (err, data) => {
+                                           `INSERT INTO users VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                                               email,
+                                               hash,
+                                               pesel,
+                                               role,
+                                               first_name,
+                                               second_name,
+                                               last_name,
+                                               mother_name,
+                                               father_name,
+                                               gender,
+                                               height,
+                                               date_of_birth,
+                                               place_of_birth,
+                                               address_street,
+                                               address_house_number,
+                                               address_postcode,
+                                               address_city,
+                                               address_country
+                                           ], (err, data) => {
                                                if (!err) {
                                                    logger('user', `RegisterUser (email: ${email})`);
                                                    res.status(201).json({
@@ -239,7 +258,7 @@ router.post('/login', (req, res, next) => {
     const password = req.body.password;
 
     if (email !== undefined && password !== undefined) {
-        db.query(`SELECT * FROM users WHERE email='${email}'`, (err, data) => {
+        db.query(`SELECT * FROM users WHERE email = ?`, [ email ], (err, data) => {
             if (!err) {
                 if (data.length === 0) {
                     logger('user', `Error 401 - LoginUser (email: ${email})`);
@@ -270,7 +289,7 @@ router.post('/login', (req, res, next) => {
                                     }
                                 );
 
-                                db.query(`UPDATE users SET last_token='${token}', last_refresh_token='${refresh_token}'`, (err, updateData) => {
+                                db.query(`UPDATE users SET last_token = ?, last_refresh_token = ?`, [ token, refresh_token ], (err, updateData) => {
                                     if (!err) {
                                         logger('user', `LoginUser (email: ${email})`);
                                         return res.status(200).json({
@@ -332,7 +351,7 @@ router.delete('/:userId', auth({ roles: [4] }), (req, res, next) => {
     const userId = req.params.userId;
 
     if (userId !== undefined) {
-        db.query(`DELETE FROM users WHERE id='${userId}'`, (err, data) => {
+        db.query(`DELETE FROM users WHERE id = ?`, [ userId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -392,7 +411,7 @@ router.post('/refresh_token', (req, res, next) => {
    if (token !== undefined && refresh_token !== undefined) {
        jwt.verify(refresh_token, process.env.JWT_SECRET_REF, (err, decoded) => {
            if (!err) {
-               db.query(`SELECT id, email, last_token, last_refresh_token FROM users WHERE id='${decoded.userId}'`, (err, data) => {
+               db.query(`SELECT id, email, last_token, last_refresh_token FROM users WHERE id = ?`, [ decoded.userId ], (err, data) => {
                    if (!err) {
                        if ((token === data[0].last_token) && (refresh_token === data[0].last_refresh_token)) {
                            const new_token = jwt.sign(
@@ -415,7 +434,7 @@ router.post('/refresh_token', (req, res, next) => {
                                }
                            );
 
-                           db.query(`UPDATE users SET last_token='${new_token}', last_refresh_token='${new_refresh_token}'`, (err, data) => {
+                           db.query(`UPDATE users SET last_token = ?, last_refresh_token = ?`, [ new_token, new_refresh_token ], (err, data) => {
                                if (!err) {
                                    logger('user', `RefreshTokenUser (id: ${decoded.userId})`);
                                    res.status(200).json({
@@ -484,7 +503,7 @@ router.post('/visits_today', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const doctorId = req.body.doctorId;
 
     if (doctorId !== undefined) {
-        db.query(`SELECT * FROM visits WHERE doctorId='${doctorId}' AND DATE(date) = DATE(NOW())`, (err, data) => {
+        db.query(`SELECT * FROM visits WHERE doctorId = ? AND DATE(date) = DATE(NOW())`, [ doctorId ], (err, data) => {
             if (!err) {
                 logger('user', `GetTodayVisitsUser (doctorId: ${doctorId})`);
                 res.status(200).json({
@@ -534,7 +553,7 @@ router.post('/get_visits', auth({ roles: [3, 4] }), (req, res, next) => {
     const patientId = req.body.patientId;
 
     if (doctorId !== undefined && patientId !== undefined) {
-        db.query(`SELECT * FROM visits WHERE doctorId='${doctorId}' AND patientId='${patientId}' ORDER BY date`, (err, data) => {
+        db.query(`SELECT * FROM visits WHERE doctorId = ? AND patientId = ? ORDER BY date`, [ doctorId, patientId ], (err, data) => {
             if (!err) {
                 if (data.length > 0 ) {
                     logger('user', `GetTodayVisitsUser (patientId: ${patientId})`);
@@ -586,7 +605,7 @@ router.get('/:userId/get_devices', auth({ roles: [2, 3, 4]}), (req, res, next) =
     const userId = req.params.userId;
 
     if (userId !== undefined) {
-        db.query(`SELECT * FROM device_user WHERE userId='${userId}'`, (err, data) => {
+        db.query(`SELECT * FROM device_user WHERE userId = ?`, [ userId ], (err, data) => {
             if (!err) {
                 logger('user', `GetUserDevices (userId: ${userId})`);
                 res.status(200).json({
@@ -635,7 +654,7 @@ router.post('/change_password', (req, res, next) => {
    const new_password = req.body.new_password;
 
    if (userId !== undefined && old_password !== undefined && new_password !== undefined) {
-       db.query(`SELECT * FROM users WHERE id='${userId}'`, (err, data) => {
+       db.query(`SELECT * FROM users WHERE id = ?`, [ userId ], (err, data) => {
           if (!err) {
               if (data.length === 0) {
                   logger('user', `Error 401 - LoginUser (email: ${email})`);
@@ -647,7 +666,7 @@ router.post('/change_password', (req, res, next) => {
                       if (!err) {
                           if (result) {
                               bcrypt.hash(new_password, 10, (err, hash) => {
-                                  db.query(`UPDATE users SET password='${hash}' WHERE id='${userId}'`, (err, updateData) => {
+                                  db.query(`UPDATE users SET password = ? WHERE id = ?`, [ hash, userId ], (err, updateData) => {
                                       if (!err) {
                                           logger('user', `LoginUser (userId: ${userId})`);
                                           return res.status(200).json({

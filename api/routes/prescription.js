@@ -85,7 +85,7 @@ router.get('/:prescriptionId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const prescriptionId = req.params.prescriptionId;
 
     if (prescriptionId !== undefined) {
-        db.query(`SELECT * FROM prescriptions WHERE id='${prescriptionId}'`, (err, data) => {
+        db.query(`SELECT * FROM prescriptions WHERE id = ?`, [ prescriptionId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -159,7 +159,7 @@ router.get('/patient/:patientId', auth({ roles: [2, 3, 4] }), (req, res, next) =
     const patientId = req.params.patientId;
 
     if (patientId !== undefined) {
-        db.query(`SELECT * FROM prescriptions WHERE patientId='${patientId}'`, (err, data) => {
+        db.query(`SELECT * FROM prescriptions WHERE patientId = ?`, [ patientId ], (err, data) => {
             if (!err) {
                 if (data.length >= 1) {
                     logger('prescription', `GetPrescriptionByPatientId (patientId: ${patientId})`);
@@ -213,7 +213,7 @@ router.post('/add', auth({ roles: [3, 4] }), (req, res, next) => {
         patientId !== undefined &&
         institutionId !== undefined
     ) {
-        db.query(`INSERT INTO prescriptions VALUES(NULL, '${doctorId}', '${patientId}', '${institutionId}', CURRENT_DATE)`, (err, data) => {
+        db.query(`INSERT INTO prescriptions VALUES(NULL, ?, ?, ?, CURRENT_DATE)`, [ doctorId, patientId, institutionId ], (err, data) => {
             if (!err) {
                 logger('prescription', `GetPrescriptionByPatientId (patientId: ${patientId})`);
                 res.status(201).json({
@@ -255,7 +255,7 @@ router.delete('/:prescriptionId', auth({ roles: [4] }), (req, res, next) => {
     const prescriptionId = req.params.prescriptionId;
 
     if (prescriptionId !== undefined) {
-        db.query(`DELETE FROM prescriptions WHERE id='${prescriptionId}'`, (err, data) => {
+        db.query(`DELETE FROM prescriptions WHERE id = ?`, [ prescriptionId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -327,7 +327,7 @@ router.get('/:prescriptionId/medicines', auth({ roles: [2, 3, 4]}), (req, res, n
     const prescriptionId = req.params.prescriptionId;
 
     if (prescriptionId !== undefined) {
-        db.query(`SELECT * FROM prescription_medicine WHERE prescriptionId='${prescriptionId}'`, (err, data) => {
+        db.query(`SELECT * FROM prescription_medicine WHERE prescriptionId = ?`, [ prescriptionId ], (err, data) => {
             if (!err) {
                 if (data.length >= 1) {
                     let medicines = [];
@@ -393,9 +393,9 @@ router.post('/:prescriptionId/medicines/add', auth({ roles: [2, 3, 4]}), (req, r
     const taking_frequency = req.body.taking_frequency;
 
     if (prescriptionId !== undefined && medicineId !== undefined && taking_frequency !== undefined) {
-        db.query(`SELECT * FROM prescription_medicine WHERE prescriptionId='${prescriptionId}' AND medicineId='${medicineId}'`, (err, data) => {2
+        db.query(`SELECT * FROM prescription_medicine WHERE prescriptionId = ? AND medicineId = ?`, [ prescriptionId, medicineId ], (err, data) => {2
             if (!err) {
-                db.query(`INSERT INTO prescription_medicine VALUES(NULL, '${prescriptionId}', '${medicineId}', '${taking_frequency}')`, (err, data) => {
+                db.query(`INSERT INTO prescription_medicine VALUES(NULL, ?, ?, ?)`, [ prescriptionId, medicineId, taking_frequency ], (err, data) => {
                     if (!err) {
                         logger('prescription', `AddPrescriptionMedicine (prescriptionId: ${prescriptionId})`);
                         res.status(201).json({

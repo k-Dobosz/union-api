@@ -80,7 +80,7 @@ router.get('/:medicineId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const medicineId = req.params.medicineId;
 
     if (medicineId !== undefined) {
-        db.query(`SELECT * FROM medicines WHERE id='${medicineId}'`, (err, data) => {
+        db.query(`SELECT * FROM medicines WHERE id = ?`, [ medicineId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -144,7 +144,7 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
     const taking_frequency = req.body.taking_frequency;
 
     if (name !== undefined && description !== undefined && taking_frequency !== undefined) {
-        db.query(`SELECT * FROM medicines WHERE name='${name}'`, (err, data) => {
+        db.query(`SELECT * FROM medicines WHERE name = ?`, [ name ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -154,7 +154,7 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
                         });
                         break;
                     case 0:
-                        db.query(`INSERT INTO medicines VALUES(NULL, '${name}', '${description}', '${takingFrequency}')`, (err, data) => {
+                        db.query(`INSERT INTO medicines VALUES(NULL, ?, ?, ?)`, [ name, description, taking_frequency ], (err, data) => {
                             if (!err) {
                                 logger('medicine', `AddMedicine (name ${name})`);
                                 res.status(201).json({
@@ -209,7 +209,7 @@ router.delete('/:medicineId', auth({ roles: [4] }), (req, res, next) => {
     const medicineId = req.params.medicineId;
 
     if (medicineId !== undefined) {
-        db.query(`DELETE FROM medicines WHERE id='${medicineId}'`, (err, data) => {
+        db.query(`DELETE FROM medicines WHERE id = ?`, [ medicineId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:

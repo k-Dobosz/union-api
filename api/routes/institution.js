@@ -83,7 +83,7 @@ router.get('/:institutionId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const institutionId = req.params.institutionId;
 
     if (institutionId !== undefined) {
-        db.query(`SELECT * FROM institutions WHERE id='${institutionId}'`, (err, data) => {
+        db.query(`SELECT * FROM institutions WHERE id = ?`, [ institutionId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -161,7 +161,7 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
         address_city !== undefined &&
         address_country !== undefined
     ) {
-        db.query(`SELECT * FROM institutions WHERE name='${name}'`, (err, data) => {
+        db.query(`SELECT * FROM institutions WHERE name = ?`, [ name ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -171,7 +171,15 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
                         });
                         break;
                     case 0:
-                        db.query(`INSERT INTO institutions VALUES(NULL, '${name}', '${phone_number}', '${address_street}', '${address_house_number}', '${address_postcode}', '${address_city}', '${address_country}')`, (err, data) => {
+                        db.query(`INSERT INTO institutions VALUES(NULL, ?, ?, ?, ?, ?, ?, ?)`, [
+                            name,
+                            phone_number,
+                            address_street,
+                            address_house_number,
+                            address_postcode,
+                            address_city,
+                            address_country
+                        ], (err, data) => {
                             if (!err) {
                                 logger('institution', `AddInstitution (name: ${name})`);
                                 res.status(201).json({
@@ -226,7 +234,7 @@ router.delete('/:institutionId', auth({ roles: [4] }), (req, res, next) => {
     const institutionId = req.params.institutionId;
 
     if (institutionId !== undefined) {
-        db.query(`DELETE FROM institutions WHERE id='${institutionId}'`, (err, data) => {
+        db.query(`DELETE FROM institutions WHERE id = ?`, [ institutionId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:

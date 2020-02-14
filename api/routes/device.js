@@ -30,7 +30,7 @@ router.get('/:deviceId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const deviceId = req.params.deviceId;
 
     if (deviceId !== undefined) {
-        db.query(`SELECT * FROM devices WHERE id='${deviceId}'`, (err, data) => {
+        db.query(`SELECT * FROM devices WHERE id = ?`, [ deviceId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -86,7 +86,7 @@ router.post('/register', (req, res, next) => {
     let pin = req.body.pin;
 
     if (pin !== undefined) {
-        db.query(`INSERT INTO devices VALUES(NULL, '${pin}', NULL, NULL)`, (err, data) => {
+        db.query(`INSERT INTO devices VALUES(NULL, ?, NULL, NULL)`, [ pin ], (err, data) => {
             if (!err) {
                 logger('device', `RegisterDevice (deviceId: ${data.insertId})`);
                 res.status(201).json({
@@ -128,7 +128,7 @@ router.post('/login', (req, res, next) => {
     const pin = req.body.pin;
 
     if (id !== undefined && pin !== undefined) {
-        db.query(`SELECT * FROM devices WHERE id='${id}'`, (err, data) => {
+        db.query(`SELECT * FROM devices WHERE id = ?`, [ id ], (err, data) => {
             if (!err) {
                 if (pin === data[0].pin) {
                     logger('device', `LoginDevice (deviceId: ${id})`);
@@ -174,11 +174,11 @@ router.delete('/:deviceId', auth({ roles: [4] }), (req, res, next) => {
     const deviceId = req.params.deviceId;
 
     if (deviceId !== undefined) {
-        db.query(`SELECT * FROM devices WHERE id='${deviceId}'`, (err, data) => {
+        db.query(`SELECT * FROM devices WHERE id = ?`, [ deviceId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
-                        db.query(`DELETE FROM devices WHERE id='${deviceId}'`, (err, data) => {
+                        db.query(`DELETE FROM devices WHERE id = ?`, [ deviceId ], (err, data) => {
                             if (!err) {
                                 logger('device', `DeleteDevice (deviceId: ${deviceId})`);
                                 res.status(200).json({
@@ -242,21 +242,21 @@ router.post('/adduser', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const device_verify_pin = parseInt(req.body.device_verify_pin);
 
     if (userId !== undefined && deviceId !== undefined && device_verify_pin !== undefined) {
-        db.query(`SELECT * FROM devices WHERE id='${deviceId}'`, (err, data) => {
+        db.query(`SELECT * FROM devices WHERE id = ?`, [ deviceId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
-                        db.query(`SELECT * FROM device_verification_pins WHERE deviceId='${deviceId}'`, (err, data) => {
+                        db.query(`SELECT * FROM device_verification_pins WHERE deviceId = ?`, [ deviceId ], (err, data) => {
                             if (!err) {
                                 if (data[0].date > Date.now() - 30000) {
                                     switch (data.length) {
                                         case 1:
                                             if (data[0].pin === device_verify_pin) {
-                                                db.query(`SELECT * FROM users WHERE id='${userId}'`, (err, data) => {
+                                                db.query(`SELECT * FROM users WHERE id = ?`, [ userId ], (err, data) => {
                                                     if (!err) {
                                                         switch (data.length) {
                                                             case 1:
-                                                                db.query(`SELECT * FROM device_user WHERE deviceId='${deviceId}' AND userId='${userId}'`, (err, data) => {
+                                                                db.query(`SELECT * FROM device_user WHERE deviceId = ? AND userId = ?`, [ deviceId, userId ], (err, data) => {
                                                                     if (!err) {
                                                                         switch (data.length) {
                                                                             case 1:
@@ -266,7 +266,7 @@ router.post('/adduser', auth({ roles: [2, 3, 4] }), (req, res, next) => {
                                                                                 });
                                                                                 break;
                                                                             case 0:
-                                                                                db.query(`INSERT INTO device_user VALUES(NULL, '${userId}', '${deviceId}')`, (err, data) => {
+                                                                                db.query(`INSERT INTO device_user VALUES(NULL, ?, ?)`, [ userId, deviceId ], (err, data) => {
                                                                                     if (!err) {
                                                                                         logger('device', `AddUserToDevice (deviceId: ${deviceId})`);
                                                                                         res.status(200).json({
@@ -397,11 +397,11 @@ router.post('/deluser', (req, res, next) => {
     const deviceId = req.body.deviceId;
 
     if (userId !== undefined && deviceId !== undefined) {
-        db.query(`SELECT * FROM device_user WHERE userId='${userId}' AND deviceId='${deviceId}'`, (err, data) => {
+        db.query(`SELECT * FROM device_user WHERE userId = ? AND deviceId = ?`, [ userId, deviceId], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
-                        db.query(`DELETE FROM device_user WHERE userId='${userId}' AND deviceId='${deviceId}'`, (err, data) => {
+                        db.query(`DELETE FROM device_user WHERE userId = ? AND deviceId = ?`, [ userId, deviceId ], (err, data) => {
                             if (!err) {
                                 logger('device', `DeleteUserFromDevice (deviceId: ${deviceId})`);
                                 res.status(200).json({
@@ -463,11 +463,11 @@ router.post('/verify', (req, res, next) => {
    const device_verify_pin = req.body.device_verify_pin;
 
    if (deviceId !== undefined && device_verify_pin !== undefined) {
-       db.query(`SELECT * FROM device_verification_pins WHERE deviceId='${deviceId}'`, (err, data) => {
+       db.query(`SELECT * FROM device_verification_pins WHERE deviceId = ?`, [ deviceId ], (err, data) => {
            if (!err) {
                switch (data.length) {
                    case 1:
-                       db.query(`UPDATE device_verification_pins SET pin='${device_verify_pin}' WHERE deviceId='${deviceId}'`, (err, data) => {
+                       db.query(`UPDATE device_verification_pins SET pin = ? WHERE deviceId = ?`, [ device_verify_pin, deviceId ],  (err, data) => {
                            if (!err) {
                                logger('device', `VerifyDevice (deviceId: ${deviceId})`);
                                res.status(200).json({
@@ -482,7 +482,7 @@ router.post('/verify', (req, res, next) => {
                        });
                        break;
                    case 0:
-                       db.query(`INSERT INTO device_verification_pins VALUES(NULL, '${deviceId}', '${device_verify_pin}', CURRENT_TIMESTAMP)`, (err, data) => {
+                       db.query(`INSERT INTO device_verification_pins VALUES(NULL, ?, ?, CURRENT_TIMESTAMP)`, [ deviceId, device_verify_pin ], (err, data) => {
                            if (!err) {
                                logger('device', `VerifyDevice (deviceId: ${deviceId})`);
                                res.status(201).json({
@@ -497,7 +497,7 @@ router.post('/verify', (req, res, next) => {
                        });
                        break;
                    default:
-                       db.query(`UPDATE device_verification_pins SET pin='${device_verify_pin}' WHERE deviceId='${deviceId}'`, (err, data) => {
+                       db.query(`UPDATE device_verification_pins SET pin = ? WHERE deviceId = ?`, [ device_verify_pin, deviceId ], (err, data) => {
                            if (!err) {
                                logger('device', `VerifyDevice (deviceId: ${deviceId})`);
                                res.status(200).json({
@@ -551,16 +551,16 @@ router.post('/card/scan', (req, res, next) => {
     console.log(cardUid);
 
     if (deviceId !== undefined && cardPin !== undefined && cardPin !== undefined) {
-        db.query(`SELECT * FROM cards WHERE cardUid='${cardUid}'`, (err, data_card) => {
+        db.query(`SELECT * FROM cards WHERE cardUid = ?`, [ cardUid ], (err, data_card) => {
             if (!err) {
                 switch (data_card.length) {
                     case 1:
                         if (data_card[0].pin === cardPin) {
-                            db.query(`SELECT last_user FROM devices WHERE id='${deviceId}'`, (err, data_dev) => {
+                            db.query(`SELECT last_user FROM devices WHERE id = ?`, [ deviceId ], (err, data_dev) => {
                                 if (!err) {
                                     switch (data_dev.length) {
                                         case 1:
-                                            db.query(`SELECT * FROM visits WHERE doctorId='${data_dev[0].last_user}' AND patientId='${data_card[0].userId}' AND DATE(date) = DATE(NOW()) `, (err, data_visits) => {
+                                            db.query(`SELECT * FROM visits WHERE doctorId = ? AND patientId = ? AND DATE(date) = DATE(NOW()) `, [ data_dev[0].last_user, data_card[0].userId ], (err, data_visits) => {
                                                 if (!err) {
                                                     if (data_visits.length >= 1) {
                                                         logger('device', `Status 304 - cardScan (cardUid: ${cardUid})`);
@@ -569,7 +569,7 @@ router.post('/card/scan', (req, res, next) => {
                                                         });
                                                     } else {
                                                         // id, reason, description, doctorId, patientId, date
-                                                        db.query(`INSERT INTO visits VALUES(NULL, '', '', '${data_dev[0].last_user}', '${data_card[0].userId}', CURRENT_TIMESTAMP)`, (err, data) => {
+                                                        db.query(`INSERT INTO visits VALUES(NULL, '', '', ?, ?, CURRENT_TIMESTAMP)`, [ data_dev[0].last_user, data_card[0].userId ], (err, data) => {
                                                             if (!err) {
                                                                 logger('device', `cardScan (cardUid: ${cardUid})`);
                                                                 res.status(201).json({
@@ -670,7 +670,7 @@ router.post('/choose', (req, res, next) => {
    const userId = req.body.userId;
 
    if (deviceId !== undefined && userId !== undefined) {
-       db.query(`UPDATE devices SET last_user='${userId}' WHERE id='${deviceId}'`, (err, data) => {
+       db.query(`UPDATE devices SET last_user = ? WHERE id = ?`, [ userId, deviceId ], (err, data) => {
           if (!err) {
               logger('device', `Error 500 - chooseDevice (deviceId: ${deviceId})`);
               res.status(200).json({

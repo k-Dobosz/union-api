@@ -70,7 +70,7 @@ router.get('/:allergyId', auth({ roles: [2, 3, 4] }), (req, res, next) => {
     const allergyId = req.params.allergyId;
 
     if (allergyId !== undefined) {
-        db.query(`SELECT * FROM allergies WHERE id='${allergyId}'`, (err, data) => {
+        db.query(`SELECT * FROM allergies WHERE id = ?`, [ allergyId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -132,7 +132,7 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
         name !== undefined &&
         userId !== undefined
     ) {
-        db.query(`SELECT * FROM allergies WHERE name='${name}'`, (err, data) => {
+        db.query(`SELECT * FROM allergies WHERE name = ?`, [ name ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:
@@ -142,7 +142,7 @@ router.post('/add', auth({ roles: [4] }), (req, res, next) => {
                         });
                         break;
                     case 0:
-                        db.query(`INSERT INTO allergies VALUES(NULL, '${userId}', '${name}',)`, (err, data) => {
+                        db.query(`INSERT INTO allergies VALUES(NULL, ?, ?)`, [ userId , name ], (err, data) => {
                             if (!err) {
                                 logger('allergy', `AddAllergy (name: ${name})`);
                                 res.status(201).json({
@@ -196,7 +196,7 @@ router.delete('/:allergyId', auth({ roles: [4] }), (req, res, next) => {
     const allergyId = req.params.allergyId;
 
     if (allergyId !== undefined) {
-        db.query(`DELETE FROM allergies WHERE id='${allergyId}'`, (err, data) => {
+        db.query(`DELETE FROM allergies WHERE id = ?`, [ allergyId ], (err, data) => {
             if (!err) {
                 switch (data.length) {
                     case 1:

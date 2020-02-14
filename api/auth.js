@@ -12,7 +12,7 @@ module.exports = (options) => {
         jwt.verify(jwt_token, process.env.JWT_SECRET, (err, decoded) => {
            if (!err) {
                req.userData = decoded;
-               db.query(`SELECT * FROM users WHERE id='${decoded.userId}'`, (err, data) => {
+               db.query(`SELECT * FROM users WHERE id = ?`, [ decoded.userId ], (err, data) => {
                    if (!err) {
                        if (options.roles.indexOf(data[0].role) != -1) {
                            next();
